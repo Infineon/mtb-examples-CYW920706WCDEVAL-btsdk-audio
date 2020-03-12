@@ -30,165 +30,86 @@
  * of such system or application assumes all risk of such use and in doing
  * so agrees to indemnify Cypress against all liability.
  */
-
 /** @file
- *  watch.c
-
- *  Watch Sample Application for 20XXX devices.
-
- *  This app demonstrates Bluetooth A2DP source, AVRCP Controller/Target, Apple Media Service (AMS) and
- *  Apple Notification Center Service (ANCS).
- *  Features demonstrated
- *   - WICED BT A2DP Source APIs
- *   - WICED BT AVRCP (Controller/Target) APIs
- *   - WICED BT GATT APIs
- *   - Apple Media Service and Apple Notification Client Services (AMS and ANCS)
- *   - Handling of the UART WICED protocol
- *   - SDP and GATT descriptor/attribute configuration
-
- *  Instructions
- *  ------------
- *  To demonstrate the app, follow these steps -
-
- *  1. Build and download the application to the WICED board.
- *  2. By default sleep in enabled in 20706A2, 20819A1, 20719B1, 20721B1 chips (*refer : Note).
- *  3. Open the BT/BLE Profile Client Control application and open the port for WICED HCI for the device.
- *     Default baud rate configured in the application is 3M.
- *  4. Use Client Control application to send various commands mentioned below.
- *  5. Run the BTSpy program to view protocol and application traces.
  *
- *  Note :
- *   For 20706A2 we are allowing normal PMU sleep.Therefore,the transport will be connected by default.So,no need to wake device.
- *   In other chips 207xx, 208xx please wake the device using configured wake pin. (Check  hci_control_sleep_config.device_wake_gpio_num).
+ * Headset Sample Application for 20706A2 devices.
+ * The sample app performs as a Bluetooth A2DP sink and AVRCP Controller (and Target for absolute volume control).
+ * Features demonstrated
+ *  - WICED BT AV (A2DP/AVRCP) APIs
+ *  - WICED BT GATT APIs
+ *  - Handling of the UART WICED protocol
+ *  - SDP and GATT descriptor/attribute configuration
  *
- *  See "BT/BLE Profile Client Control" and "BT Spy" in chip-specifc readme.txt for more information about these apps.
+ * This application can run as a standalone Headset or in association with ClientControl.
+ * When running in standalone mode, it is required that 20706 controls the codec chip, Currently this is not implemented.
+ * In association with an ClientControl (apps processor emulation), this app serves to abstract the details of Bluetooth protocols and profiles while allowing ClientControl to deal with the business logic.
+ * ClientControl processor is typically connected over UART and can send commands and receive notifications.
  *
- *  BR/EDR Audio Source and AVRC Target:
- *  - The Watch app can demonstrate how use to BR/EDR Audio Source and AVRC TG profiles.
- *  - Use buttons in AV Source tab.
- *  - To play sine wave sample, set the audio frequency to desired value (48kHz, 44.1kHz, etc.)
- *    and select the Media type as 'Sine Wave' in UI. In this case, built-in sine wave audio is played.
- *  - To play music from .wav file, select the Media type as File, browse and select a .wav file.
- *    In this case, audio for .wav file is routed over WICED HCI UART to the WICED board.
- *  - Put an audio sink device such as BT headphone/speaker in pairable mode.
- *  - Click on "Start" button for "BR/EDR Discovery" combo box to find the audio sink device.
- *  - Select the peer device in the BR/EDR Discovery combo box.
- *  - Click "Connect" button under AV Source tab.
- *  - Click "Start Streaming" button. Music will start playing on peer device.
- *  - The watch app uses AVRCP Target role. Once connected to headset/speaker,
- *    the app can send notifications for play status change (Play, Pause, Stop) and
- *    setting change (Repeat, Shuffle) to peer AVRCP controller (such as headset/speaker).
- *    Note: the songs shown in the AVRC TG UI and some settings such Repeat/Shuffle are for testing
- *    AVRC commands only, do not indicate the actual media played and will not change the media played.
-
- *  BR/EDR AVRCP Controller:
- *  - The Watch app can demonstrate how use to AVRC CT profile.
- *  - Disconnect all devices if any connected.
- *  - Make an audio source device such as iPhone discoverable/pairable from Bluetooth Settings UI on phone.
- *  - Using "BR/EDR Discovery" "Start" button, search and select the device.
- *  - Use buttons in AVRC CT tab. Click Connect button and accept pairing.
- *  - Play music on audio source device and control the music via buttons in AVRC CT tab.
- *  - In Controller mode, pass-thru commands are executed via Play, Pause, Stop, etc. buttons.
- *  - Absolute volume change can be done via the drop down Volume or Vol Up/Down buttons.
- *  - Note that iPhone does does not support Vol buttons.
- *  - Note that music will continue to play on audio source device.
+ * On startup this demo:
+ *  - Initializes the Bluetooth sub system
+ *  - Receive NVRAM information from the host
  *
- *  iOS ANCS and AMS GATT Services:
- *  - The Watch app can demonstrate how to use AMS and ANCS iOS services as below.
- *  - Disconnect all devices if any connected.
- *  - Select Pairable if it not checked.
- *  - Click on the "Start Adverts" button in GATT tab.
- *  - From the iPhone app such as 'LightBlue', find and connect to 'Watch' app.
- *  - Allow pairing with the iPhone.
- *  - AMS:
- *    - Play media on the iPhone.
- *    - Use buttons in AVRC CT tab to control the music.
- *    - Note that music will continue to play on iPhone.
- *  - ANCS:
- *    - Incoming calls and messages to the iPhone will be displayed on the ANCS buttons.
- *    - Make an incoming call to your iPhone. See notification displayed on UI to accept
- *      or reject the call. Send SMS to your iPhone to see notification. Similarly missed
- *      call notifications are seen.
+ * Application Instructions
+ * *->To use this application in conjunction with ClientControl:
+ *  - Build application to produce a downloadable hcd file.
+ *  - The HCD file thus generated is downloaded into 20706 RAM.
+ *  - Ensure that STANDALONE_HEADSET_APP flag is disabled.
  *
- *  BLE Client:
- *  - The Watch app can demonstrate BLE Client functionality as below.
- *  - Make sure there is a BT device with GATT services that is advertising. For example use app
- *    such as 'LightBlue' on your phone and create a 'Virtual Peripheral' such as 'Blood Pressure'
- *  - To find GATT devices: Click on the "Start" button for "BLE Discovery" combo box.
- *    Click on "Stop" button to end discovery.
- *  - To connect BLE device: Choose device from the "BLE Discovery" drop down combo box and
- *    click "Connect" button.
- *  - To discover services: Click on the "Discover Services" button
- *  - To discover characteristics: Enter the handles in the edit box and click
- *    on "Discover Characteristics"
- *  - To discover descriptors: Enter the handles in the edit box and click on
- *    "Discover Characteristics"
- *  - Enter the Handle and Hex Value to write to the remote device using buttons
- *     "Write" : Write hex value to remote handle
- *     "Write no rsp" : Write hex value without response to remote handle
- *     "Value Notify" : Write notification value to the remote handle
- *     "Value Indicate" : Write indication value to the remote handle
+ * *->To use this in stand alone mode:
+ *  - Ensure that STANDALONE_HEADSET_APP flag is enabled.
+ *  - Button configured to demonstrate multiple functionality.
+ *  - Button has 2 states, short press and long press. Both of them have certain features configured.
+ *  - Button Short Press Cases:
+ *     * Play/Pause music streaming.
+ *     * Accept/End incoming call/ongoing call.
+ *     * End an outgoing call.
+ *  - Button Long Press Cases:
+ *     * Last number redialing when in IDLE state.
+ *     * Reject an incoming call.
+ *     * Put an existing call on hold.
  */
 
-/*******************************************************************************
- *                               Includes
- ******************************************************************************/
 #include "wiced_bt_gatt.h"
 #include "wiced_bt_ble.h"
-#include "wiced_bt_cfg.h"
+#include "wiced_app_cfg.h"
 #include "wiced_memory.h"
 #include "wiced_bt_sdp.h"
 #include "wiced_bt_avrc_defs.h"
 #include "wiced_bt_avrc.h"
+#include "wiced_power_save.h"
 #include "wiced_timer.h"
 #include "hci_control.h"
-#include "hci_control_test.h"
-#if ( defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(WICEDX) || defined(CYW20819A1) )
-#include "wiced_sleep.h"
-#endif
+#include "wiced_hal_nvram.h"
+
 #include "wiced_platform.h"
-#ifdef CYW20706A2
-#include "wiced_power_save.h"
-#if (WICED_HCI_TRANSPORT == WICED_HCI_TRANSPORT_SPI)
-#include "wiced_hal_pspi.h"
-#endif
-#endif
-#include "wiced_hal_puart.h"
 #include "wiced_transport.h"
+
 #include "wiced_app.h"
-#include "wiced_app_cfg.h"
-#include "wiced_bt_avrc_tg.h"
 #include "string.h"
+#include "wiced_bt_a2dp_sink.h"
+#include "wiced_hal_mia.h"
 #include "wiced_bt_stack.h"
-#if ( defined(CYW20706A2) || defined(CYW20719B1) || defined(CYW20721B1) || defined(CYW43012C0) )
+#include "wiced_hal_puart.h"
 #include "wiced_bt_app_common.h"
-#endif
-#ifdef CYW43012C0
-#include "wiced_hal_watchdog.h"
-#else
+#include "wiced_bt_app_hal_common.h"
+#include "remote_controller/hci_control_rc.h"
 #include "wiced_hal_wdog.h"
-#endif
-#ifdef CYW20719B1
-#include "wiced_bt_event.h"
-#endif
-#ifdef CYW20706A2
-#if (WICED_HCI_TRANSPORT == WICED_HCI_TRANSPORT_SPI)
-#include "wiced_trans_spi.h"
-#endif
-#endif
+
 /*****************************************************************************
 **  Constants
 *****************************************************************************/
 #define WICED_HS_EIR_BUF_MAX_SIZE               264
 #define KEY_INFO_POOL_BUFFER_SIZE   145 //Size of the buffer used for holding the peer device key info
-#define KEY_INFO_POOL_BUFFER_COUNT  5  //Correspond's to the number of peer devices
+#define KEY_INFO_POOL_BUFFER_COUNT  8  //Correspond's to the number of peer devices
 
-#define SECI_BAUD_RATE    2000000  // Applicable for 20719B1 and 20721B1 when Coex is used
+#ifdef STANDALONE_HEADSET_APP
+/* Headset App Timer Timeout in seconds  */
+#define HEADSET_APP_TIMEOUT_IN_SECONDS                 1
 
-#ifdef CYW20819A1
-#define WICED_TRANSPORT_BUFFER_COUNT    1
-#else
-#define WICED_TRANSPORT_BUFFER_COUNT    2
+#define BUTTON_PRESSED                         WICED_BUTTON_PRESSED_VALUE
+
+
+uint32_t app_timer_count = 0;
 #endif
 
 /*****************************************************************************
@@ -205,24 +126,55 @@ typedef struct
 /******************************************************
  *               Variables Definitions
  ******************************************************/
+
+uint8_t device_name[255];
+
 wiced_bool_t avrcp_profile_role = AVRCP_TARGET_ROLE;
 
 hci_control_nvram_chunk_t *p_nvram_first = NULL;
 
 /* HS control block */
-#if BTA_DYNAMIC_MEMORY == WICED_FALSE
+#if BTA_DYNAMIC_MEMORY == FALSE
 hci_control_cb_t  hci_control_cb;
 #endif
 
 wiced_transport_buffer_pool_t* transport_pool;   // Trans pool for sending the RFCOMM data to host
 wiced_bt_buffer_pool_t*        p_key_info_pool;  //Pool for storing the  key info
 
+static uint32_t  hci_control_proc_rx_cmd( uint8_t *p_data, uint32_t length );
+static void      hci_control_transport_tx_cplt_cback(wiced_transport_buffer_pool_t* p_pool);
+
+const wiced_transport_cfg_t transport_cfg =
+{
+	.type = WICED_TRANSPORT_UART,
+	.cfg =
+	{
+		.uart_cfg =
+		{
+			.mode = WICED_TRANSPORT_UART_HCI_MODE,
+			.baud_rate =  HCI_UART_DEFAULT_BAUD
+		},
+	},
+	.rx_buff_pool_cfg =
+	{
+		.buffer_size = 0,
+		.buffer_count = 0
+	},
+	.p_status_handler = NULL,
+	.p_data_handler = hci_control_proc_rx_cmd,
+	.p_tx_complete_cback = hci_control_transport_tx_cplt_cback
+};
+
+extern const uint8_t headset_sdp_db[];
+
+app_context_t app_state_cb;
+
 /******************************************************
  *               Function Declarations
  ******************************************************/
-static void     hci_control_transport_status( wiced_transport_type_t type );
-static uint32_t hci_control_proc_rx_cmd( uint8_t *p_data, uint32_t length );
-static void     hci_control_transport_tx_cplt_cback(wiced_transport_buffer_pool_t* p_pool);
+static void     hci_control_handle_bt_stack_init(uint8_t* data, uint32_t length);
+static void     hci_control_handle_set_local_name(uint8_t* data, uint32_t length);
+static void     hci_control_handle_sdp_db_init(uint8_t* data, uint32_t length);
 static void     hci_control_handle_reset_cmd( void );
 static void     hci_control_handle_trace_enable( uint8_t *p_data );
 static void     hci_control_device_handle_command( uint16_t cmd_opcode, uint8_t* p_data, uint32_t data_len );
@@ -230,338 +182,212 @@ static void     hci_control_handle_set_local_bda( uint8_t *p_bda );
 static void     hci_control_inquiry( uint8_t enable );
 static void     hci_control_handle_set_visibility( uint8_t discoverability, uint8_t connectability );
 static void     hci_control_handle_set_pairability ( uint8_t pairing_allowed );
-#if (defined(COEX_SUPPORTED) && COEX_SUPPORTED == WICED_TRUE)
 static void     hci_control_handle_enable_disable_coex ( wiced_bool_t enable );
-#endif
 static void     hci_control_handle_read_local_bda( void );
 static void     hci_control_handle_user_confirmation( uint8_t *p_bda, uint8_t accept_pairing );
 static void     hci_control_handle_read_buffer_stats( void );
-static void     hci_control_send_device_started_evt( void );
+static void     hci_control_send_device_started_evt( wiced_result_t fw_status, uint8_t status );
 static void     hci_control_send_device_error_evt( uint8_t fw_error_code, uint8_t app_error_code );
 static void     hci_control_send_pairing_completed_evt( uint8_t status, wiced_bt_device_address_t bdaddr );
 static void     hci_control_send_user_confirmation_request_evt( BD_ADDR bda, uint32_t numeric_value );
 static void     hci_control_send_encryption_changed_evt( uint8_t encrypted, wiced_bt_device_address_t bdaddr );
 static wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event, wiced_bt_management_evt_data_t *p_event_data );
+
+#ifdef STANDALONE_HEADSET_APP
+static void                     headset_load_keys_to_addr_resolution_db(void);
+static wiced_bool_t             headset_save_link_keys(wiced_bt_device_link_keys_t *p_keys);
+static wiced_bool_t             headset_read_link_keys(wiced_bt_device_link_keys_t *p_keys);
+static wiced_bool_t             headset_delete_link_keys(void);
+static wiced_bool_t             headset_get_paired_host_info(uint8_t* bda);
+
+static void                     headset_interrupt_handler( void *user_data, uint8_t value );
+static void                     headset_app_timer( uint32_t arg );
+#endif
+
 extern void wiced_bt_rc_target_initiate_close( void );
-extern wiced_result_t wiced_bt_remote_control_cleanup( void );
-extern void av_app_init( void );
-extern void hci_control_rc_controller_init( void );
-extern void hci_control_rc_target_init( void );
-extern void wiced_bt_rc_target_register(void);
 extern wiced_result_t wiced_bt_avrc_ct_cleanup( void );
-
-/******************************************************************************
- *                                Variable/Structure/type Definitions
- ******************************************************************************/
-
-#if ( !defined(CYW43012C0) && (WICED_HCI_TRANSPORT == WICED_HCI_TRANSPORT_SPI))
-
-#ifndef CYW20706A2
-#ifdef CYW20819A1
-#define SPI_GPIO_CFG    SPI_PIN_CONFIG(WICED_P09, WICED_P15, WICED_P06, WICED_P17)
-#else
-#define SLAVE1_P01_CS_P10_CLK_P28_MOSI_P29_MISO     0x010A1C1D
-#define SPI_GPIO_CFG    SLAVE1_P01_CS_P10_CLK_P28_MOSI_P29_MISO
-#endif
-#endif
-const wiced_transport_cfg_t transport_cfg =
-{
-    .type = WICED_TRANSPORT_SPI,
-    .cfg =
-    {
-        .spi_cfg =
-        {
-#ifdef CYW20706A2
-            .dev_role            = SPI_SLAVE_ROLE,
-            .spi_gpio_cfg        = SLAVE1_P02_CS_P03_CLK_P00_MOSI_P25_MISO, /**< Pins to use for the data and clk lines. Refer  spiffdriver.h for details */
-            .spi_pin_pull_config = INPUT_PIN_FLOATING,
-#elif (CYW20719B2 || CYW20721B2)
-#else
-            .dev_role            = SPI_SLAVE,
-            .spi_gpio_cfg        = SPI_GPIO_CFG, /**< Pins to use for the data and clk lines. Refer  spiffdriver.h for details */
-            .spi_pin_pull_config = INPUT_PIN_PULL_DOWN,
-#endif
-            .clock_speed         = 0,
-            .endian              = SPI_MSB_FIRST,
-            .polarity            = SPI_SS_ACTIVE_LOW,
-            .mode                = SPI_MODE_0,
-#ifdef CYW20706A2
-            .cs_pin              =  0,
-            .slave_ready_pin     =  WICED_P15
-#elif (CYW20719B2 || CYW20721B2)
-#else
-            .cs_pin              =  0,
-            .slave_ready_pin     =  WICED_P06
-#endif
-        },
-    },
-    .rx_buff_pool_cfg =
-    {
-        .buffer_size  = TRANS_SPI_BUFFER_SIZE,
-        .buffer_count = WICED_TRANSPORT_BUFFER_COUNT
-    },
-    .p_status_handler    = hci_control_transport_status,
-    .p_data_handler      = hci_control_proc_rx_cmd,
-    .p_tx_complete_cback = hci_control_transport_tx_cplt_cback
-};
-
-#else
-
-const wiced_transport_cfg_t transport_cfg =
-{
-    .type = WICED_TRANSPORT_UART,
-    .cfg =
-    {
-        .uart_cfg =
-        {
-            .mode = WICED_TRANSPORT_UART_HCI_MODE,
-            .baud_rate =  HCI_UART_DEFAULT_BAUD
-        },
-    },
-    .rx_buff_pool_cfg =
-    {
-        .buffer_size  = TRANS_UART_BUFFER_SIZE,
-        .buffer_count = WICED_TRANSPORT_BUFFER_COUNT
-    },
-    .p_status_handler    = hci_control_transport_status,
-    .p_data_handler      = hci_control_proc_rx_cmd,
-    .p_tx_complete_cback = hci_control_transport_tx_cplt_cback
-};
-
-#endif
+extern void avrc_app_init( void );
 
 /******************************************************
  *               Function Definitions
  ******************************************************/
 
 /*
- *  hci_control_init. Initialize the app.
+ *  hci_control_init
  */
 void hci_control_init( void )
 {
-    wiced_result_t status = WICED_SUCCESS;
+    wiced_result_t ret = WICED_BT_ERROR;
     memset( &hci_control_cb, 0, sizeof( hci_control_cb ) );
-
-#ifdef WICED_BT_TRACE_ENABLE
-#ifdef NO_PUART_SUPPORT
-    wiced_set_debug_uart(WICED_ROUTE_DEBUG_TO_WICED_UART);
-#else
-    wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_PUART );
-#if ( defined(CYW20706A2) )
-    wiced_hal_puart_select_uart_pads( WICED_PUART_RXD, WICED_PUART_TXD, 0, 0);
-#endif // CYW20706A2
-#endif // CYW43012C0
-#endif // WICED_BT_TRACE_ENABLE
 
     wiced_transport_init( &transport_cfg );
 
-    wiced_bt_stack_init( hci_control_management_callback,
-                         &wiced_bt_cfg_settings,
-                         wiced_app_cfg_buf_pools);
+#ifdef WICED_BT_TRACE_ENABLE
 
-    status = wiced_audio_buffer_initialize(wiced_bt_audio_buf_config);
-    if ( status != WICED_SUCCESS )
-    {
-        WICED_BT_TRACE("WICED Audio buffer init failed status %d \n", status);
-    }
-}
+#ifdef STANDALONE_HEADSET_APP
+    // Set to PUART to see traces on peripheral uart(puart)
+    wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_PUART );
+    wiced_hal_puart_select_uart_pads( WICED_PUART_RXD, WICED_PUART_TXD, 0, 0);
 
-#if (defined(SLEEP_SUPPORTED) && (SLEEP_SUPPORTED == WICED_TRUE))
-
-#ifndef CYW20706A2
-wiced_timer_t hci_control_app_timer;
-
-void hci_control_timeout( uint32_t count )
-{
-    WICED_BT_TRACE("Idle Timeout.\n");
-
-    hci_control_cb.application_state = HCI_CONTROL_STATE_IDLE;
-}
-
-/*
-* The function invoked on timeout of app seconds timer.
-*/
-void hci_control_init_timer(void)
-{
-    /* Start idle timer to enter to sleep */
-    if ( wiced_init_timer( &hci_control_app_timer, hci_control_timeout, 0, WICED_SECONDS_TIMER ) == WICED_SUCCESS )
-    {
-        if ( wiced_start_timer( &hci_control_app_timer, 10 ) !=  WICED_SUCCESS )
-        {
-            WICED_BT_TRACE("idle timer start failure\n");
-            return;
-        }
-    }
-    else
-    {
-        WICED_BT_TRACE("idle timer init fail \n");
-    }
-}
-
-/*
-* The function handles sleep.
-*/
-static uint32_t hci_control_sleep_hanlder(wiced_sleep_poll_type_t type )
-{
-    uint32_t ret = WICED_SLEEP_NOT_ALLOWED;
-
-    switch(type)
-    {
-        case WICED_SLEEP_POLL_SLEEP_PERMISSION:
-            if( hci_control_cb.application_state == HCI_CONTROL_STATE_IDLE )
-            {
-#ifdef ENABLE_SDS_SLEEP
-                ret = WICED_SLEEP_ALLOWED_WITH_SHUTDOWN;
 #else
-                ret = WICED_SLEEP_ALLOWED_WITHOUT_SHUTDOWN;
+    // Use WICED_ROUTE_DEBUG_TO_WICED_UART to send formatted debug strings over the WICED
+    // HCI debug interface to be parsed by ClientControl/BtSpy
+    // Note: WICED HCI must be configured to use this - see wiced_trasnport_init(), must
+    // be called with wiced_transport_cfg_t.wiced_tranport_data_handler_t callback present
+     wiced_set_debug_uart(WICED_ROUTE_DEBUG_TO_WICED_UART);
 #endif
-            }
-            break;
-
-        case WICED_SLEEP_POLL_TIME_TO_SLEEP:
-            if( hci_control_cb.application_state == HCI_CONTROL_STATE_NOT_IDLE )
-            {
-                ret = 0;
-            }
-            else
-            {
-                ret = WICED_SLEEP_MAX_TIME_TO_SLEEP;
-            }
-            break;
-    }
-    return ret;
-}
-#endif // !CYW20706A2
-
-/*
-* The function does sleep configuration based on platform.
-*/
-void hci_control_sleep_configure()
-{
-    WICED_BT_TRACE("[%s] \n",__FUNCTION__);
-#ifdef CYW20706A2
-    {
-        wiced_ptu_clock_bits_t ptu_clock_bits;
-        wiced_ptu_aux_clock_bits_t ptu_aux_clock_bits;
-        ptu_clock_bits     = (  GATE_ON_SDIO_CLK_BIT |
-                                PCM_CLK_EN_BIT  |
-                                GATE_ON_SDIO_HOST_CLK_BIT
-                             );
-        ptu_aux_clock_bits = (  PCM_DEV_CLK_EN_BIT |
-                                ABURST_CLK_EN_BIT  |
-                                SPIFFY2_TPORT_CLK_EN_BIT |
-                                SPIFFY2_HCLK_CLK_EN_BIT
-                             );
-#if (WICED_HCI_TRANSPORT == WICED_HCI_TRANSPORT_SPI)
-        //SPI Sleep Init
-        //P2 is the SPI CS and the device should wake when CS is asserted.
-        //I2S_CLK/PCM_CLK/P2/P37/P28 available on the same pad B7 on the 20706-P49 package.
-        //So configuring I2S_CLK(BT_GPIO_6) as the DEV_WAKE.
-        //SPI CS is configured as active low, so DEV_WAKE should be active low
-        wiced_trans_spi_sleep_config( WICED_GPIO_06, WICED_WAKE_GPIO_ACTIVE_LOW );
-#else
-        wiced_sleep_config( WICED_TRUE, WICED_WAKE_GPIO_ACTIVE_LOW, WICED_WAKE_GPIO_ACTIVE_HIGH );
 #endif
-        wiced_ptu_clock_disable(ptu_clock_bits, ptu_aux_clock_bits);
-    }
-#else // !20703
 
+    WICED_BT_TRACE( "HEADSET APP START\n" );
+    ret = wiced_bt_stack_init(hci_control_management_callback, &wiced_bt_cfg_settings, wiced_app_cfg_buf_pools);
+    if( ret != WICED_BT_SUCCESS )
     {
-
-        /*sleep configuration*/
-        static wiced_sleep_config_t    hci_control_sleep_config;
-        // For UART mode MCU should control wake gpio and configure the sleep
-        hci_control_sleep_config.sleep_mode             = WICED_SLEEP_MODE_TRANSPORT;
-        hci_control_sleep_config.device_wake_gpio_num   = WICED_GPIO_PIN_BUTTON;
-        hci_control_sleep_config.device_wake_mode       = WICED_SLEEP_WAKE_ACTIVE_LOW;
-        hci_control_sleep_config.device_wake_source     = WICED_SLEEP_WAKE_SOURCE_GPIO;
-        hci_control_sleep_config.host_wake_mode         = WICED_SLEEP_WAKE_ACTIVE_HIGH;
-        hci_control_sleep_config.sleep_permit_handler   = hci_control_sleep_hanlder;
-
-        // Init Idle timer
-        hci_control_init_timer();
-
-        if( wiced_sleep_get_boot_mode() == WICED_SLEEP_COLD_BOOT )
-        {
-            WICED_BT_TRACE( "Watch Cold Start \n" );
-        }
-        else
-        {
-            // If warm start, retrieve data from retention ram if needed
-            WICED_BT_TRACE( "Watch Warm Start \n" );
-        }
-        hci_control_cb.application_state = HCI_CONTROL_STATE_NOT_IDLE;
-
-        wiced_sleep_configure( &hci_control_sleep_config );
-    }
-#endif // CYW20706A2
-
-}
-#endif // end (defined(SLEEP_SUPPORTED) && (SLEEP_SUPPORTED == WICED_TRUE))
-/*
- *  Prepare extended inquiry response data.  Current version publishes headset,
- *  handsfree and generic audio services.
- */
-void hci_control_write_eir( void )
-{
-    uint8_t *pBuf;
-    uint8_t *p, *p_tmp;
-    uint8_t nb_uuid = 0;
-    uint8_t length;
-
-    //Allocating a buffer from the public pool
-    pBuf = (uint8_t *)wiced_bt_get_buffer( WICED_HS_EIR_BUF_MAX_SIZE );
-
-    WICED_BT_TRACE( "hci_control_write_eir %x\n", pBuf );
-
-    if ( !pBuf )
-    {
+        WICED_BT_TRACE("wiced_bt_stack_init returns error: %d\n", ret);
         return;
     }
 
-    p = pBuf;
+    /* Configure Audio buffer */
+    wiced_audio_buffer_initialize (wiced_bt_audio_buf_config);
 
-    length = strlen( (char *)wiced_bt_cfg_settings.device_name );
-    UINT8_TO_STREAM(p, length + 1);
-    UINT8_TO_STREAM(p, BT_EIR_COMPLETE_LOCAL_NAME_TYPE);
-    memcpy( p, wiced_bt_cfg_settings.device_name, length );
-    p += length;
-
-    // Add other BR/EDR UUIDs
-    p_tmp = p;      // We don't now the number of UUIDs for the moment
-    p++;
-    UINT8_TO_STREAM(p, BT_EIR_COMPLETE_16BITS_UUID_TYPE);
-#if (WICED_APP_AUDIO_SRC_INCLUDED == WICED_TRUE)
-    UINT16_TO_STREAM(p, UUID_SERVCLASS_AUDIO_SOURCE);       nb_uuid++;
-#endif
-#if (WICED_APP_AUDIO_RC_TG_INCLUDED == WICED_TRUE)
-    UINT16_TO_STREAM(p, UUID_SERVCLASS_AV_REM_CTRL_TARGET); nb_uuid++;
-#endif
-#if (WICED_APP_AUDIO_RC_CT_INCLUDED == WICED_TRUE)
-    UINT16_TO_STREAM(p, UUID_SERVCLASS_AV_REMOTE_CONTROL);  nb_uuid++;
-    UINT16_TO_STREAM(p, UUID_SERVCLASS_AUDIO_SINK);         nb_uuid++;
-#endif
-    /* Now, we can update the UUID Tag's length */
-    UINT8_TO_STREAM(p_tmp, (nb_uuid * LEN_UUID_16) + 1);
-
-    // Last Tag
-    UINT8_TO_STREAM(p, 0x00);
-
-    // print EIR data
-    wiced_bt_trace_array( "EIR :", ( uint8_t* )( pBuf+1 ), MIN( p - ( uint8_t* )pBuf, 100 ) );
-    wiced_bt_dev_write_eir( pBuf, (uint16_t)(p - pBuf) );
-
-    /* Allocated buffer not anymore needed. Free it */
-    wiced_bt_free_buffer( pBuf );
-
-    return;
 }
+
+#ifdef STANDALONE_HEADSET_APP
+void state_button_action( wiced_bool_t button_press_state );
+void headset_set_input_interrupt(void)
+{
+
+    wiced_hal_gpio_register_pin_for_interrupt( WICED_GPIO_BUTTON, headset_interrupt_handler, NULL );
+    wiced_hal_gpio_configure_pin( WICED_GPIO_BUTTON, WICED_GPIO_BUTTON_SETTINGS( GPIO_EN_INT_BOTH_EDGE ), WICED_GPIO_BUTTON_DEFAULT_STATE );
+
+    /* Starting the app timers, seconds timer and milliseconds timer  */
+    wiced_bt_app_start_timer( HEADSET_APP_TIMEOUT_IN_SECONDS, 0, headset_app_timer, NULL );
+}
+
+/* The function invoked on timeout of app seconds timer. */
+void headset_app_timer( uint32_t arg )
+{
+    app_timer_count++;
+}
+
+void headset_interrupt_handler( void *user_data, uint8_t value )
+{
+    static uint32_t button_pushed_time = 0;
+    uint8_t data[2];
+
+    if ( wiced_hal_gpio_get_pin_input_status(WICED_GPIO_BUTTON) == BUTTON_PRESSED )
+        {
+            button_pushed_time = app_timer_count;
+        }
+        else if ( button_pushed_time != 0 )
+        {
+            if ( app_timer_count - button_pushed_time > 5 )
+            {
+                 WICED_BT_TRACE( "long press\n");
+                 state_button_action( BUTTON_STATE_LONG_PRESS );
+
+            }
+            else
+            {
+                 WICED_BT_TRACE( "short press\n" );
+                 state_button_action( BUTTON_STATE_SHORT_PRESS );
+            }
+        }
+}
+
+void state_button_action( uint8_t button_press_state )
+{
+    uint8_t data[2];
+
+    switch( app_state_cb.state )
+    {
+        case IDLE:
+        {
+            if( button_press_state == BUTTON_STATE_LONG_PRESS )
+            {
+                WICED_BT_TRACE("Re-dial last number\n");
+                hci_control_hf_at_command ( app_state_cb.hands_free_handle, HCI_CONTROL_HF_AT_COMMAND_BLDN, (int)NULL, NULL );
+            }
+            else //short press
+            {
+                /* check the connection status also. if not connected do nothing */
+                if( app_state_cb.audio_stream_state == APP_STREAM_STATE_STOPPED )
+                {
+                     WICED_BT_TRACE("A2DP streaming started!\n");
+                     data[0] = app_state_cb.remote_control_handle & 0xff;                        //handle
+                     data[1] = ( app_state_cb.remote_control_handle >> 8 ) & 0xff;
+                     hci_control_avrc_handle_ctrlr_command( HCI_CONTROL_AVRC_CONTROLLER_COMMAND_PLAY, data, sizeof(uint16_t) );
+                     /* maintain local app state */
+                     app_state_cb.state = A2DP;
+                     app_state_cb.audio_stream_state = APP_STREAM_STATE_PLAYING;
+                }
+            }
+        }
+        break;
+
+        case A2DP:
+        {
+            if( button_press_state == BUTTON_STATE_LONG_PRESS )
+            {
+                 // do nothing
+            }
+            else // short press
+            {
+                if( app_state_cb.audio_stream_state == APP_STREAM_STATE_PLAYING )
+                {
+                     WICED_BT_TRACE("A2DP streaming paused!\n");
+                     data[0] = app_state_cb.remote_control_handle & 0xff;                        //handle
+                     data[1] = ( app_state_cb.remote_control_handle >> 8 ) & 0xff;
+                     hci_control_avrc_handle_ctrlr_command( HCI_CONTROL_AVRC_CONTROLLER_COMMAND_PAUSE, data, sizeof(uint16_t) );
+                     /* maintain local app state */
+                     app_state_cb.state = IDLE;
+                     app_state_cb.audio_stream_state = APP_STREAM_STATE_STOPPED;
+                }
+            }
+        }
+        break;
+
+        case HFP:
+        {
+            if( button_press_state == BUTTON_STATE_LONG_PRESS )
+            {
+                if( app_state_cb.call_state == HFP_STATE_INCOMING_CALL )
+                {
+                     WICED_BT_TRACE("End an incoming call\n");
+                     hci_control_hf_at_command ( app_state_cb.hands_free_handle, HCI_CONTROL_HF_AT_COMMAND_CHUP, (int)NULL, NULL );
+                }
+                else if( app_state_cb.call_state == HFP_STATE_CALL_IN_PROGRESS )
+                {
+                     WICED_BT_TRACE("Put the active call on hold\n");
+                     hci_control_hf_at_command ( app_state_cb.hands_free_handle, HCI_CONTROL_HF_AT_COMMAND_CHLD, 2, NULL );
+                }
+            }
+            else //short press
+            {
+                if( app_state_cb.call_state == HFP_STATE_INCOMING_CALL )
+                {
+                     WICED_BT_TRACE("Incoming call- Accept\n");
+                     hci_control_hf_at_command ( app_state_cb.hands_free_handle, HCI_CONTROL_HF_AT_COMMAND_A, (int)NULL, NULL );
+                }
+                else if( app_state_cb.call_state == HFP_STATE_CALL_IN_PROGRESS )
+                {
+                     WICED_BT_TRACE("End the on going call\n");
+                     hci_control_hf_at_command ( app_state_cb.hands_free_handle, HCI_CONTROL_HF_AT_COMMAND_CHUP, (int)NULL, NULL );
+                }
+                else if( app_state_cb.call_state == HFP_STATE_OUTGOING_CALL )
+                {
+                     WICED_BT_TRACE("End an out going call\n");
+                     hci_control_hf_at_command ( app_state_cb.hands_free_handle, HCI_CONTROL_HF_AT_COMMAND_CHUP, (int)NULL, NULL );
+                }
+            }
+        }
+        break;
+    }
+}
+#endif
 
 /*
  *  Process all HCI packet from
  */
-#define COD_MAJOR_COMPUTER  1
-#define COD_MAJOR_PHONE     2
 
 void hci_control_hci_packet_cback( wiced_bt_hci_trace_type_t type, uint16_t length, uint8_t* p_data )
 {
@@ -576,8 +402,128 @@ void hci_control_hci_packet_cback( wiced_bt_hci_trace_type_t type, uint16_t leng
     // If executing test command, need to send Command Complete event back to host app
     if( ( type == HCI_TRACE_EVENT ) && ( length >= 6 ) )
     {
-        hci_control_handle_hci_test_event( p_data, length );
+       // hci_control_handle_hci_test_event( p_data, length );
     }
+}
+
+/*
+ *  Prepare extended inquiry response data.  Current version publishes audio sink
+ *  services.
+ */
+void headset_write_eir( char* headset_device_name, uint8_t name_length  )
+{
+    uint8_t *pBuf;
+    uint8_t *p;
+    uint8_t length;
+    uint8_t *p_tmp;
+    char* device_name;
+    uint8_t nb_uuid = 0;
+
+    pBuf = (uint8_t*)wiced_bt_get_buffer( WICED_HS_EIR_BUF_MAX_SIZE );
+    memset(pBuf, 0, WICED_HS_EIR_BUF_MAX_SIZE);
+    WICED_BT_TRACE( "headset_write_eir %x\n", pBuf );
+
+    if ( !pBuf )
+    {
+        return;
+    }
+    p = pBuf;
+
+    if( headset_device_name != NULL)
+    {
+        device_name = headset_device_name;
+        length = name_length;
+    }
+    else
+    {
+        device_name = (char*) wiced_bt_cfg_settings.device_name;
+        length = strlen( (char *)device_name);
+    }
+
+    UINT8_TO_STREAM(p, length + 1);
+    UINT8_TO_STREAM(p, BT_EIR_COMPLETE_LOCAL_NAME_TYPE); // EIR type full name
+    memcpy( p, device_name, length );
+    p += length;
+
+    p_tmp = p;      // We don't now the number of UUIDs for the moment
+    p++;
+    UINT8_TO_STREAM(p, BT_EIR_COMPLETE_16BITS_UUID_TYPE);  // EIR type full list of 16 bit service UUIDs
+
+    UINT16_TO_STREAM(p, UUID_SERVCLASS_AUDIO_SINK);       nb_uuid++;
+
+    UINT16_TO_STREAM(p, UUID_SERVCLASS_HF_HANDSFREE);     nb_uuid++;
+
+    /* Now, we can update the UUID Tag's length */
+    UINT8_TO_STREAM(p_tmp, (nb_uuid * LEN_UUID_16) + 1);
+
+    // Last Tag
+    UINT8_TO_STREAM(p, 0x00);
+
+    // print EIR data
+    wiced_bt_trace_array( "EIR :", ( uint8_t* )( pBuf+1 ), MIN( p-( uint8_t* )pBuf,100 ) );
+    if(wiced_bt_dev_write_eir( pBuf, (uint16_t)(p - pBuf) ) != WICED_SUCCESS)
+        WICED_BT_TRACE("dev_write_eir failed\n");
+
+    return;
+}
+
+/*
+ *  Connection status callback function triggered from the stack on ACL connection/disconnection.
+ *  This function sends HCI_CONTROL_EVENT_CONNECTION_STATUS event to UART
+ */
+void hci_control_connection_status_callback (wiced_bt_device_address_t bd_addr, uint8_t *p_features, wiced_bool_t is_connected, uint16_t handle, wiced_bt_transport_t transport, uint8_t reason)
+{
+    wiced_result_t result = WICED_ERROR;
+    uint8_t event_data[2];
+
+    //Build event payload
+    event_data[0] = is_connected;
+    event_data[1] = reason;
+
+#ifdef STANDALONE_HEADSET_APP
+    if (!is_connected)
+    {
+        app_state_cb.is_originator = WICED_FALSE;
+    }
+#endif
+
+    result = wiced_transport_send_data( HCI_CONTROL_EVENT_CONNECTION_STATUS, event_data, 2 );
+
+    WICED_BT_TRACE("%s  is_connected:%d reason:%x result:%d\n", __FUNCTION__, is_connected, reason, result );
+}
+
+wiced_result_t headset_post_bt_init(void)
+{
+    wiced_result_t result = WICED_BT_ERROR;
+    wiced_bool_t ret = WICED_FALSE;
+
+    ret = wiced_bt_sdp_db_init( ( uint8_t * )headset_sdp_db, wiced_app_cfg_sdp_record_get_size());
+    if( ret != TRUE )
+    {
+        WICED_BT_TRACE("%s Failed to Initialize SDP databse\n", __FUNCTION__);
+        return WICED_BT_ERROR;
+    }
+
+    result = wiced_bt_dev_register_connection_status_change( hci_control_connection_status_callback );
+    WICED_BT_TRACE ("bt_audio_management_callback registering acl_change callback result: 0x%x\n", result);
+
+    /* start a2dp*/
+    result = headset_a2dp_init();
+    if(result != WICED_BT_SUCCESS )
+    {
+        WICED_BT_TRACE("%s Failed to Initialize A2DP\n", __FUNCTION__);
+        return result;
+    }
+
+    headset_remote_control_init();
+
+    handsfree_hfp_init();
+
+#if (WICED_APP_LE_INCLUDED == TRUE)
+    hci_control_le_enable();
+#endif
+
+    return result;
 }
 
 /*
@@ -586,79 +532,73 @@ void hci_control_hci_packet_cback( wiced_bt_hci_trace_type_t type, uint16_t leng
 wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event, wiced_bt_management_evt_data_t *p_event_data )
 {
     wiced_result_t                     result = WICED_BT_SUCCESS;
+    wiced_bt_dev_status_t              dev_status;
+    wiced_bt_dev_ble_pairing_info_t   *p_pairing_info;
     wiced_bt_dev_encryption_status_t  *p_encryption_status;
     int                                bytes_written, bytes_read;
     int                                nvram_id;
     wiced_bt_power_mgmt_notification_t *p_power_mgmt_notification;
     wiced_bt_dev_pairing_cplt_t        *p_pairing_cmpl;
     uint8_t                             pairing_result;
-    wiced_bool_t                       sdp_rv;
+    wiced_bt_local_identity_keys_t     *p_identity_keys;
 
-    WICED_BT_TRACE( "hci_control_management_callback 0x%02x\n", event );
+#if (WICED_HCI_TRANSPORT == WICED_HCI_TRANSPORT_UART)
+    WICED_BT_TRACE( "headset bluetooth management callback event: 0x%02x\n", event );
+#endif
 
     switch( event )
     {
         /* Bluetooth  stack enabled */
         case BTM_ENABLED_EVT:
-#ifdef CYW20706A2
-            wiced_bt_app_init();
-#endif
-            hci_control_write_eir( );
-
-            /* initialize everything */
-            memset( &hci_control_cb, 0, sizeof( hci_control_cb ) );
-
-            /* create SDP records */
-            sdp_rv = wiced_bt_sdp_db_init((uint8_t *)wiced_app_cfg_sdp_record,
-                    wiced_app_cfg_sdp_record_get_size());
-            if (sdp_rv != WICED_TRUE)
-                WICED_BT_TRACE("Err: wiced_bt_sdp_db_init Failed\n");
-
-#if (WICED_APP_LE_INCLUDED == WICED_TRUE)
-            hci_control_le_enable( );
-#endif
-
-#if (WICED_APP_AUDIO_SRC_INCLUDED == WICED_TRUE)
-            av_app_init();
-#endif
-#if (WICED_TRUE == WICED_APP_AUDIO_RC_CT_INCLUDED)
-            /* Initialize AVRC Target and Controler */
-            if ( avrcp_profile_role == AVRCP_CONTROLLER_ROLE )
+            if( p_event_data->enabled.status != WICED_BT_SUCCESS )
             {
-                hci_control_rc_controller_init();
+                WICED_BT_TRACE("arrived with failure\n");
             }
-#endif
-#if (WICED_TRUE == WICED_APP_AUDIO_RC_TG_INCLUDED)
-            if ( avrcp_profile_role == AVRCP_TARGET_ROLE )
+            else
             {
-                hci_control_rc_target_init();
-                wiced_bt_avrc_tg_register();
-            }
-#endif
+                headset_post_bt_init();
+
+#ifdef HCI_TRACE_OVER_TRANSPORT
             // Disable while streaming audio over the uart.
             wiced_bt_dev_register_hci_trace( hci_control_hci_packet_cback );
+#endif
 
             // Creating a buffer pool for holding the peer devices's key info
-            p_key_info_pool = wiced_bt_create_pool( KEY_INFO_POOL_BUFFER_SIZE, KEY_INFO_POOL_BUFFER_COUNT );
+            p_key_info_pool = wiced_bt_create_pool( KEY_INFO_POOL_BUFFER_SIZE,
+                    KEY_INFO_POOL_BUFFER_COUNT );
+
             if (p_key_info_pool == NULL)
-                WICED_BT_TRACE("Err: wiced_bt_create_pool failed\n");
+                {
+                    WICED_BT_TRACE("Err: wiced_bt_create_pool failed\n");
+                }
+            }
 
-#if (defined(SLEEP_SUPPORTED) && (SLEEP_SUPPORTED == WICED_TRUE))
-            hci_control_sleep_configure();
+#ifdef STANDALONE_HEADSET_APP
+        {
+            wiced_bt_device_address_t bda;
+            /* to work with stand alone */
+            wiced_bt_dev_set_local_name((char *)wiced_bt_cfg_settings.device_name);
+            wiced_bt_dev_set_discoverability(BTM_GENERAL_DISCOVERABLE, wiced_bt_cfg_settings.br_edr_scan_cfg.inquiry_scan_window, wiced_bt_cfg_settings.br_edr_scan_cfg.inquiry_scan_interval);
+            wiced_bt_dev_set_connectability(BTM_CONNECTABLE, wiced_bt_cfg_settings.br_edr_scan_cfg.page_scan_window, wiced_bt_cfg_settings.br_edr_scan_cfg.page_scan_interval);
+
+            /* maintain local application state */
+            app_state_cb.state = IDLE;
+            app_state_cb.audio_stream_state = APP_STREAM_STATE_STOPPED;
+            app_state_cb.call_state = HFP_STATE_IDLE;
+
+            wiced_bt_app_hal_init();
+
+            headset_set_input_interrupt();
+
+            if (headset_get_paired_host_info(bda))
+            {
+                app_state_cb.is_originator = WICED_TRUE;
+                wiced_bt_hfp_hf_connect(bda);
+            }
+        }
 #endif
 
-#if (defined(COEX_SUPPORTED) && COEX_SUPPORTED == WICED_TRUE)
-#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1)
-        wiced_bt_coex_enable(SECI_BAUD_RATE);
-#else
-        wiced_bt_coex_enable();
-#endif
-#endif
-#ifdef CYW20706A2
-            // Tell Host that App is started
-            hci_control_send_device_started_evt();
-#endif
-
+            wiced_transport_send_data( HCI_CONTROL_EVENT_DEVICE_STARTED, NULL, 0 );
             break;
 
         case BTM_DISABLED_EVT:
@@ -667,7 +607,7 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
 
         case BTM_PIN_REQUEST_EVT:
             WICED_BT_TRACE("remote address= %B\n", p_event_data->pin_request.bd_addr);
-            wiced_bt_dev_pin_code_reply(*p_event_data->pin_request.bd_addr, WICED_BT_SUCCESS, WICED_PIN_CODE_LEN, (uint8_t *)&pincode[0]);
+            //wiced_bt_dev_pin_code_reply(*p_event_data->pin_request.bd_addr, WICED_BT_SUCCESS, WICED_PIN_CODE_LEN, (uint8_t *)&pincode[0]);
             break;
 
         case BTM_USER_CONFIRMATION_REQUEST_EVT:
@@ -690,17 +630,17 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
         case BTM_PAIRING_IO_CAPABILITIES_BR_EDR_REQUEST_EVT:
             /* Use the default security for BR/EDR*/
             WICED_BT_TRACE("BTM_PAIRING_IO_CAPABILITIES_BR_EDR_REQUEST_EVT bda %B\n", p_event_data->pairing_io_capabilities_br_edr_request.bd_addr);
-            p_event_data->pairing_io_capabilities_br_edr_request.local_io_cap = BTM_IO_CAPABILITIES_DISPLAY_AND_YES_NO_INPUT;
+            p_event_data->pairing_io_capabilities_br_edr_request.local_io_cap = BTM_IO_CAPABILITIES_NONE;
             p_event_data->pairing_io_capabilities_br_edr_request.auth_req     = BTM_AUTH_SINGLE_PROFILE_GENERAL_BONDING_NO;
             p_event_data->pairing_io_capabilities_br_edr_request.oob_data     = WICED_FALSE;
-            p_event_data->pairing_io_capabilities_br_edr_request.auth_req     = BTM_AUTH_ALL_PROFILES_NO;
+//            p_event_data->pairing_io_capabilities_br_edr_request.auth_req     = BTM_AUTH_ALL_PROFILES_NO;
             break;
 
         case BTM_PAIRING_IO_CAPABILITIES_BLE_REQUEST_EVT:
             /* Use the default security for BLE */
             WICED_BT_TRACE("BTM_PAIRING_IO_CAPABILITIES_BLE_REQUEST_EVT bda %B\n",
                     p_event_data->pairing_io_capabilities_ble_request.bd_addr);
-            p_event_data->pairing_io_capabilities_ble_request.local_io_cap  = BTM_IO_CAPABILITIES_DISPLAY_AND_YES_NO_INPUT;
+            p_event_data->pairing_io_capabilities_ble_request.local_io_cap  = BTM_IO_CAPABILITIES_NONE;
             p_event_data->pairing_io_capabilities_ble_request.oob_data      = BTM_OOB_NONE;
             p_event_data->pairing_io_capabilities_ble_request.auth_req      = BTM_LE_AUTH_REQ_SC_MITM_BOND;
             p_event_data->pairing_io_capabilities_ble_request.max_key_size  = 16;
@@ -727,7 +667,7 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
 
             WICED_BT_TRACE( "Encryption Status:(%B) res:%d\n", p_encryption_status->bd_addr, p_encryption_status->result );
 
-#if (WICED_APP_LE_SLAVE_CLIENT_INCLUDED == WICED_TRUE)
+#if (WICED_APP_LE_SLAVE_CLIENT_INCLUDED == TRUE)
             if (p_encryption_status->transport == BT_TRANSPORT_LE)
                 le_slave_encryption_status_changed(p_encryption_status);
 #endif
@@ -735,7 +675,6 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
             break;
 
         case BTM_SECURITY_REQUEST_EVT:
-            WICED_BT_TRACE( "Security Request Event, Pairing allowed %d\n", hci_control_cb.pairing_allowed );
             if ( hci_control_cb.pairing_allowed )
             {
                 wiced_bt_ble_security_grant( p_event_data->security_request.bd_addr, WICED_BT_SUCCESS );
@@ -745,9 +684,18 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
                 // Pairing not allowed, return error
                 result = WICED_BT_ERROR;
             }
+            WICED_BT_TRACE( "Security Request Event, Pairing allowed %d\n", hci_control_cb.pairing_allowed );
             break;
 
         case BTM_PAIRED_DEVICE_LINK_KEYS_UPDATE_EVT:
+        {
+#ifdef STANDALONE_HEADSET_APP
+
+            WICED_BT_TRACE("link keys update:%d\n", p_event_data->paired_device_link_keys_update.key_data.le_keys_available_mask);
+            headset_save_link_keys(&p_event_data->paired_device_link_keys_update);
+            wiced_bt_dev_add_device_to_address_resolution_db(&p_event_data->paired_device_link_keys_update, p_event_data->paired_device_link_keys_update.key_data.ble_addr_type);
+
+#else
             /* Check if we already have information saved for this bd_addr */
             if ( ( nvram_id = hci_control_find_nvram_id( p_event_data->paired_device_link_keys_update.bd_addr, BD_ADDR_LEN ) ) == 0)
             {
@@ -757,12 +705,30 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
             }
             bytes_written = hci_control_write_nvram( nvram_id, sizeof( wiced_bt_device_link_keys_t ), &p_event_data->paired_device_link_keys_update, WICED_FALSE );
 
-            WICED_BT_TRACE("NVRAM write:id:%d bytes:%d dev: [%B]\n", nvram_id, bytes_written, p_event_data->paired_device_link_keys_update.bd_addr);
+            WICED_BT_TRACE("\nNVRAM write:id:%d bytes:%d dev: [%B]\n", nvram_id, bytes_written, p_event_data->paired_device_link_keys_update.bd_addr);
+#endif
+        }
             break;
 
         case  BTM_PAIRED_DEVICE_LINK_KEYS_REQUEST_EVT:
+        {
             /* read existing key from the NVRAM  */
+#ifdef STANDALONE_HEADSET_APP
 
+           WICED_BT_TRACE("link keys request:%d\n", p_event_data->paired_device_link_keys_request.key_data.le_keys_available_mask);
+
+           if (headset_read_link_keys(&p_event_data->paired_device_link_keys_request))
+           {
+               result = WICED_BT_SUCCESS;
+               WICED_BT_TRACE("Key retrieval success\n");
+           }
+           else
+           {
+               result = WICED_BT_ERROR;
+               WICED_BT_TRACE("Key retrieval failure\n");
+           }
+
+#else
             WICED_BT_TRACE("\t\tfind device %B\n", p_event_data->paired_device_link_keys_request.bd_addr);
 
             if ( ( nvram_id = hci_control_find_nvram_id( p_event_data->paired_device_link_keys_request.bd_addr, BD_ADDR_LEN ) ) != 0)
@@ -777,11 +743,19 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
                 result = WICED_BT_ERROR;
                 WICED_BT_TRACE("Key retrieval failure\n");
             }
+#endif
+         }
             break;
 
         case BTM_LOCAL_IDENTITY_KEYS_UPDATE_EVT:
-            /* Request to store newly generated local identity keys to NVRAM */
-            /* (sample app does not store keys to NVRAM) */
+        /* Request to store newly generated local identity keys to NVRAM */
+        /* Store the keys only if used in Stand alone mode */
+#ifdef STANDALONE_HEADSET_APP
+           /* save keys to NVRAM */
+           p_identity_keys = &p_event_data->local_identity_keys_update;
+           wiced_hal_write_nvram (HEADSET_LOCAL_KEYS_VS_ID, sizeof(wiced_bt_local_identity_keys_t), (uint8_t *)p_identity_keys, &result);
+           WICED_BT_TRACE("local keys save to NVRAM result: %d \n", result);
+#endif
 
             break;
 
@@ -791,32 +765,37 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
              * Request to restore local identity keys from NVRAM
              * (requested during Bluetooth start up)
              * */
-            /* (sample app does not store keys to NVRAM)
-             * New local identity keys will be generated
-             * */
+        /* Read the keys only in stand alone mode */
+#ifdef STANDALONE_HEADSET_APP
+            /* read keys from NVRAM */
+           p_identity_keys = &p_event_data->local_identity_keys_request;
+           wiced_hal_read_nvram(HEADSET_LOCAL_KEYS_VS_ID, sizeof(wiced_bt_local_identity_keys_t), (uint8_t *)p_identity_keys, &result);
+           WICED_BT_TRACE("local keys read from NVRAM result: %d \n",  result);
+
+#else
             result = WICED_BT_NO_RESOURCES;
+#endif
             break;
-#if (WICED_APP_LE_INCLUDED == WICED_TRUE)
 
         case BTM_BLE_SCAN_STATE_CHANGED_EVT:
-            hci_control_le_scan_state_changed( p_event_data->ble_scan_state_changed );
+            //hci_control_le_scan_state_changed( p_event_data->ble_scan_state_changed );
             break;
 
         case BTM_BLE_ADVERT_STATE_CHANGED_EVT:
-            hci_control_le_advert_state_changed( p_event_data->ble_advert_state_changed );
+            //hci_control_le_advert_state_changed( p_event_data->ble_advert_state_changed );
             break;
 
-        case BTM_BLE_CONNECTION_PARAM_UPDATE:
-            WICED_BT_TRACE ("BTM BLE Connection Update event status %d BDA [%B] interval %d latency %d supervision timeout %d \n",
-                                p_event_data->ble_connection_param_update.status, p_event_data->ble_connection_param_update.bd_addr,
-                                p_event_data->ble_connection_param_update.conn_interval, p_event_data->ble_connection_param_update.conn_latency,
-                                p_event_data->ble_connection_param_update.supervision_timeout);
-            break;
-#endif
         case BTM_POWER_MANAGEMENT_STATUS_EVT:
             p_power_mgmt_notification = &p_event_data->power_mgmt_notification;
             WICED_BT_TRACE( "Power mgmt status event: bd ( %B ) status:%d hci_status:%d\n", p_power_mgmt_notification->bd_addr, \
                     p_power_mgmt_notification->status, p_power_mgmt_notification->hci_status);
+            break;
+
+        case BTM_SCO_CONNECTED_EVT:
+        case BTM_SCO_DISCONNECTED_EVT:
+        case BTM_SCO_CONNECTION_REQUEST_EVT:
+        case BTM_SCO_CONNECTION_CHANGE_EVT:
+            hf_sco_management_callback(event, p_event_data);
             break;
 
         default:
@@ -826,6 +805,31 @@ wiced_result_t hci_control_management_callback( wiced_bt_management_evt_t event,
     return result;
 }
 
+void hci_control_handle_get_version(void)
+{
+    uint8_t   tx_buf[20];
+    uint8_t   cmd = 0;
+    uint32_t  chip = CHIP;
+
+    tx_buf[cmd++] = WICED_SDK_MAJOR_VER;
+    tx_buf[cmd++] = WICED_SDK_MINOR_VER;
+    tx_buf[cmd++] = WICED_SDK_REV_NUMBER;
+    tx_buf[cmd++] = WICED_SDK_BUILD_NUMBER & 0xFF;
+    tx_buf[cmd++] = (WICED_SDK_BUILD_NUMBER>>8) & 0xFF;
+    tx_buf[cmd++] = chip & 0xFF;
+    tx_buf[cmd++] = (chip>>8) & 0xFF;
+    tx_buf[cmd++] = (chip>>24) & 0xFF;
+    tx_buf[cmd++] = 0; // not used
+
+    /* Send MCU app the supported features */
+    tx_buf[cmd++] = HCI_CONTROL_GROUP_GATT;
+    tx_buf[cmd++] = HCI_CONTROL_GROUP_AUDIO_SINK;
+    tx_buf[cmd++] = HCI_CONTROL_GROUP_HF;
+    tx_buf[cmd++] = HCI_CONTROL_GROUP_AVRC_CONTROLLER;
+    tx_buf[cmd++] = HCI_CONTROL_GROUP_AVRC_TARGET;
+
+    wiced_transport_send_data(HCI_CONTROL_MISC_EVENT_VERSION, tx_buf, cmd);
+}
 /*
  * Handle received command over UART. Please refer to the WICED Smart Ready
  * Software User Manual (WICED-Smart-Ready-SWUM100-R) for details on the
@@ -854,71 +858,41 @@ static uint32_t hci_control_proc_rx_cmd( uint8_t *p_buffer, uint32_t length )
     STREAM_TO_UINT16(opcode, p_data);       // Get OpCode
     STREAM_TO_UINT16(payload_len, p_data);  // Gen Payload Length
 
-    WICED_BT_TRACE("cmd_opcode 0x%02x\n", opcode);
+    WICED_BT_TRACE("[%s] cmd_opcode 0x%02x\n", __FUNCTION__, opcode);
 
+    if (opcode == HCI_CONTROL_MISC_EVENT_VERSION)
+    {
+        hci_control_handle_get_version();
+    }
     switch((opcode >> 8) & 0xff)
     {
     case HCI_CONTROL_GROUP_DEVICE:
         hci_control_device_handle_command( opcode, p_data, payload_len );
         break;
 
-#if (WICED_APP_LE_INCLUDED == WICED_TRUE)
+#if (WICED_APP_LE_INCLUDED == TRUE)
     case HCI_CONTROL_GROUP_LE:
     case HCI_CONTROL_GROUP_GATT:
         hci_control_le_handle_command( opcode, p_data, payload_len );
         break;
 #endif
 
-#if (WICED_APP_AUDIO_SRC_INCLUDED == WICED_TRUE)
-    case HCI_CONTROL_GROUP_AUDIO:
+#if (WICED_APP_AUDIO_SINK_INCLUDED == TRUE)
+    case HCI_CONTROL_GROUP_AUDIO_SINK:
         hci_control_audio_handle_command( opcode, p_data, payload_len );
         break;
 #endif
-#if ( WICED_APP_AUDIO_RC_TG_INCLUDED == WICED_TRUE )
+
     case HCI_CONTROL_GROUP_AVRC_TARGET:
-        hci_control_avrc_handle_command( opcode, p_data, payload_len );
+        //hci_control_avrc_handle_command( opcode, p_data, payload_len );
         break;
-#endif
 
     case HCI_CONTROL_GROUP_AVRC_CONTROLLER:
-#if ( WICED_APP_AUDIO_RC_TG_INCLUDED == WICED_TRUE )
-        if ((avrcp_profile_role == AVRCP_TARGET_ROLE) &&
-            (hci_control_rc_target_is_connected()))
-        {
-            hci_control_avrc_handle_command( opcode, p_data, payload_len );
-        }
-        else
-        {
-#endif
-#if (WICED_APP_LE_SLAVE_CLIENT_INCLUDED == WICED_TRUE)
-        if ( hci_control_is_ams_connection_up() )
-        {
-            hci_control_ams_handle_command( opcode, p_data, payload_len );
-        }
-        else
-#endif
-#if (WICED_APP_AUDIO_RC_CT_INCLUDED == WICED_TRUE)
-        {
-            hci_control_avrc_handle_ctrlr_command(opcode, p_data, payload_len);
-            }
-        }
-#endif
+        hci_control_avrc_handle_ctrlr_command(opcode, p_data, payload_len);
         break;
 
-#if (WICED_APP_TEST_INCLUDED == WICED_TRUE)
-    case HCI_CONTROL_GROUP_TEST:
-        hci_control_test_handle_command( opcode, p_data, payload_len );
-        break;
-#endif
-
-#if (WICED_APP_ANCS_INCLUDED == WICED_TRUE)
-    case HCI_CONTROL_GROUP_ANCS:
-        hci_control_ancs_handle_command( opcode, p_data, payload_len );
-        break;
-#endif
-
-    case HCI_CONTROL_GROUP_MISC:
-        hci_control_misc_handle_command(opcode, p_data, payload_len);
+    case HCI_CONTROL_GROUP_HF:
+        hci_control_hf_handle_command ( opcode, p_data, payload_len );
         break;
 
     default:
@@ -952,10 +926,27 @@ void hci_control_device_handle_command( uint16_t cmd_opcode, uint8_t* p_data, ui
         break;
 
     case HCI_CONTROL_COMMAND_PUSH_NVRAM_DATA:
-        bytes_written = hci_control_write_nvram( p_data[0] | ( p_data[1] << 8 ), data_len - 2, &p_data[2], WICED_TRUE );
-        WICED_BT_TRACE( "NVRAM write: %d dev: [%B]\n", bytes_written , &p_data[2]);
-        break;
+        {
+            int nvram_id = 0;
+            BD_ADDR bd_addr;
+            uint8_t* p = p_data;
 
+            STREAM_TO_UINT16(nvram_id, p);
+            memcpy(bd_addr, p, sizeof(uint8_t) * 6);
+
+            WICED_BT_TRACE("[%s] bd_addr = %B\n",__func__,bd_addr);
+
+            if ((nvram_id = hci_control_find_nvram_id( bd_addr, BD_ADDR_LEN)) == 0)
+            {
+                // This is the first time, allocate id for the new memory chunk
+                nvram_id = hci_control_alloc_nvram_id();
+                WICED_BT_TRACE( "Allocated NVRAM ID:%d\n", nvram_id );
+            }
+
+            bytes_written = hci_control_write_nvram(nvram_id, data_len - 2, &p_data[2], WICED_TRUE);
+            WICED_BT_TRACE( "NVRAM write: %d dev: [%B]\n", bytes_written , &p_data[2]);
+            break;
+        }
     case HCI_CONTROL_COMMAND_DELETE_NVRAM_DATA:
         hci_control_delete_nvram( p_data[0] | ( p_data[1] << 8 ), WICED_TRUE );
         WICED_BT_TRACE( "NVRAM delete: %d\n", p_data[0] | ( p_data[1] << 8 ) );
@@ -972,15 +963,15 @@ void hci_control_device_handle_command( uint16_t cmd_opcode, uint8_t* p_data, ui
     case  HCI_CONTROL_COMMAND_SET_PAIRING_MODE:
         hci_control_handle_set_pairability( p_data[0] );
         break;
-#if (defined(COEX_SUPPORTED) && COEX_SUPPORTED == WICED_TRUE)
+
     case HCI_CONTROL_COMMAND_ENABLE_COEX:
-        hci_control_handle_enable_disable_coex( WICED_TRUE );
+        hci_control_handle_enable_disable_coex( TRUE );
         break;
 
     case HCI_CONTROL_COMMAND_DISABLE_COEX:
-        hci_control_handle_enable_disable_coex( WICED_FALSE );
+        hci_control_handle_enable_disable_coex( FALSE );
         break;
-#endif
+
     case HCI_CONTROL_COMMAND_READ_LOCAL_BDA:
         hci_control_handle_read_local_bda();
         break;
@@ -993,11 +984,16 @@ void hci_control_device_handle_command( uint16_t cmd_opcode, uint8_t* p_data, ui
         hci_control_handle_read_buffer_stats ();
         break;
 
+    case HCI_CONTROL_COMMAND_SET_LOCAL_NAME:
+        hci_control_handle_set_local_name(p_data, data_len);
+        break;
+
     default:
         WICED_BT_TRACE( "??? Unknown command code\n" );
         break;
     }
 }
+
 
 /*
  * handle reset command from UART
@@ -1030,15 +1026,7 @@ void hci_control_handle_trace_enable( uint8_t *p_data )
     {
         wiced_bt_dev_register_hci_trace( NULL);
     }
-
-#if (defined(SLEEP_SUPPORTED) && (SLEEP_SUPPORTED == WICED_TRUE))
-    route_debug = WICED_ROUTE_DEBUG_TO_PUART;
-#endif
-
-// In SPI transport case, PUART is recommended for debug traces and is set to PUART by default.
-#if (WICED_HCI_TRANSPORT != WICED_HCI_TRANSPORT_SPI)
     wiced_set_debug_uart( route_debug );
-#endif
 
     hci_control_send_command_status_evt( HCI_CONTROL_EVENT_COMMAND_STATUS, HCI_CONTROL_STATUS_SUCCESS );
 }
@@ -1061,15 +1049,7 @@ void hci_control_handle_set_local_bda( uint8_t *p_bda)
  */
 void hci_control_handle_read_buffer_stats( void )
 {
-    uint8_t buff_pools = 0;
-#ifdef WICEDX
-#define BUFF_POOLS 5
-    wiced_bt_buffer_statistics_t buff_stats[BUFF_POOLS];
-    buff_pools = BUFF_POOLS;
-#else
-    wiced_bt_buffer_statistics_t buff_stats[wiced_bt_get_number_of_buffer_pools()];
-    buff_pools = wiced_bt_get_number_of_buffer_pools();
-#endif
+    wiced_bt_buffer_statistics_t buff_stats[ wiced_bt_get_number_of_buffer_pools() ];
     wiced_result_t result;
     uint8_t i;
 
@@ -1080,7 +1060,7 @@ void hci_control_handle_read_buffer_stats( void )
         // Print out the stats to trace
         WICED_BT_TRACE( "Buffer usage statistics:\n");
 
-        for( i=0; i < buff_pools; i++) {
+        for( i=0; i < wiced_bt_get_number_of_buffer_pools(); i++) {
             WICED_BT_TRACE("pool_id:%d size:%d curr_cnt:%d max_cnt:%d total:%d\n",
                            buff_stats[i].pool_id, buff_stats[i].pool_size,
                            buff_stats[i].current_allocated_count, buff_stats[i].max_allocated_count,
@@ -1167,6 +1147,23 @@ void hci_control_inquiry( uint8_t enable )
 }
 
 /*
+ * Set local name
+ *
+ */
+void hci_control_handle_set_local_name(uint8_t* p_data, uint32_t data_len)
+{
+    /* the local name is only from the second byte
+     * The first bytes provides the length.
+     */
+    uint8_t name[250];
+
+    memset(name, 0, sizeof(name));
+    memcpy(name, &p_data[1], p_data[0] - 1);
+    wiced_bt_dev_set_local_name((char*)name);
+    headset_write_eir((char*)&p_data[1], p_data[0] - 1);
+}
+
+/*
  *  Handle Set Visibility command received over UART
  */
 void hci_control_handle_set_visibility( uint8_t discoverability, uint8_t connectability )
@@ -1198,22 +1195,25 @@ void hci_control_handle_set_visibility( uint8_t discoverability, uint8_t connect
 void hci_control_handle_set_pairability ( uint8_t pairing_allowed )
 {
     uint8_t                   status = HCI_CONTROL_STATUS_SUCCESS;
-    hci_control_nvram_chunk_t *p1 = NULL;
+    hci_control_nvram_chunk_t *p1;
 
     if ( hci_control_cb.pairing_allowed != pairing_allowed )
     {
         if ( pairing_allowed )
         {
             // Check if key buffer pool has buffer available. If not, cannot enable pairing until nvram entries are deleted
-            if (wiced_bt_get_buffer_count(p_key_info_pool) <= 0)
+            if ( ( p1 = ( hci_control_nvram_chunk_t * )wiced_bt_get_buffer_from_pool( p_key_info_pool ) ) == NULL)
             {
-                WICED_BT_TRACE( "Err: No more memory for Pairing\n" );
                 pairing_allowed = 0; //The key buffer pool is full therefore we cannot allow pairing to be enabled
                 status = HCI_CONTROL_STATUS_OUT_OF_MEMORY;
             }
+            else
+            {
+                wiced_bt_free_buffer( p1 );
+            }
         }
 
-        hci_control_cb.pairing_allowed = pairing_allowed;
+    hci_control_cb.pairing_allowed = pairing_allowed;
         wiced_bt_set_pairable_mode( hci_control_cb.pairing_allowed, 0 );
         WICED_BT_TRACE( " Set the pairing allowed to %d \n", hci_control_cb.pairing_allowed );
     }
@@ -1221,7 +1221,6 @@ void hci_control_handle_set_pairability ( uint8_t pairing_allowed )
     hci_control_send_command_status_evt( HCI_CONTROL_EVENT_COMMAND_STATUS, status );
 }
 
-#if (defined(COEX_SUPPORTED) && COEX_SUPPORTED == WICED_TRUE)
 /*
  *  Handle Enable/Disable Coex command received over UART
  */
@@ -1230,11 +1229,7 @@ static void hci_control_handle_enable_disable_coex ( wiced_bool_t enable )
     if ( enable )
     {
         WICED_BT_TRACE( "Enabling Coex\n" );
-#if defined(CYW20719B1) || defined(CYW20719B2) || defined(CYW20721B1) || defined(CYW20721B2) || defined(CYW20819A1)
-        wiced_bt_coex_enable(0x1E8480);
-#else
         wiced_bt_coex_enable();
-#endif
     }
     else
     {
@@ -1244,7 +1239,6 @@ static void hci_control_handle_enable_disable_coex ( wiced_bool_t enable )
 
     hci_control_send_command_status_evt( HCI_CONTROL_EVENT_COMMAND_STATUS, HCI_CONTROL_STATUS_SUCCESS );
 }
-#endif
 
 /*
  *  Handle Get Local BDA command received over UART
@@ -1275,16 +1269,21 @@ void hci_control_handle_user_confirmation( uint8_t *p_bda, uint8_t accept_pairin
 /*
  *  Send Device Started event through UART
  */
-void hci_control_send_device_started_evt( void )
+void hci_control_send_device_started_evt( wiced_result_t fw_status, uint8_t app_status )
 {
-    wiced_transport_send_data( HCI_CONTROL_EVENT_DEVICE_STARTED, NULL, 0 );
+    wiced_result_t* result;
+    uint8_t event_data[sizeof(wiced_result_t) + 1 ];
+    result = (wiced_result_t *)&event_data;
+    *result = fw_status;
+    event_data[sizeof(wiced_result_t)] = app_status;
+    wiced_transport_send_data( HCI_CONTROL_EVENT_DEVICE_STARTED, event_data, sizeof(wiced_result_t) + 1 );
 
     WICED_BT_TRACE( "maxLinks:%d maxChannels:%d maxpsm:%d rfcom max links%d, rfcom max ports:%d\n",
-            wiced_bt_cfg_settings.l2cap_application.max_links,
-            wiced_bt_cfg_settings.l2cap_application.max_channels,
-            wiced_bt_cfg_settings.l2cap_application.max_psm,
-            wiced_bt_cfg_settings.rfcomm_cfg.max_links,
-            wiced_bt_cfg_settings.rfcomm_cfg.max_ports );
+                    wiced_bt_cfg_settings.l2cap_application.max_links,
+                    wiced_bt_cfg_settings.l2cap_application.max_channels,
+                    wiced_bt_cfg_settings.l2cap_application.max_psm,
+                    wiced_bt_cfg_settings.rfcomm_cfg.max_links,
+                    wiced_bt_cfg_settings.rfcomm_cfg.max_ports );
 }
 
 /*
@@ -1316,8 +1315,8 @@ void hci_control_send_command_status_evt( uint16_t code, uint8_t status )
 void hci_control_send_pairing_completed_evt( uint8_t status , wiced_bt_device_address_t bdaddr )
 {
     int i;
-
-    uint8_t event_data[BD_ADDR_LEN + sizeof(uint8_t)];
+    const int cmd_size = BD_ADDR_LEN + sizeof(uint8_t);
+    uint8_t event_data[cmd_size];
     int     cmd_bytes = 0;
 
     event_data[cmd_bytes++] = status;
@@ -1336,8 +1335,10 @@ void hci_control_send_pairing_completed_evt( uint8_t status , wiced_bt_device_ad
 void hci_control_send_user_confirmation_request_evt( BD_ADDR bda, uint32_t numeric_value )
 {
     uint8_t buf[10];
+    int i;
     uint8_t *p = &buf[6];
-    memcpy( buf, bda, BD_ADDR_LEN );
+    for ( i = 0 ; i < BD_ADDR_LEN; i++ )                     // bd address
+        buf[i] = bda[BD_ADDR_LEN - 1 - i];
     *p++ = numeric_value & 0xff;
     *p++ = (numeric_value >> 8) & 0xff;
     *p++ = (numeric_value >> 16) & 0xff;
@@ -1345,14 +1346,14 @@ void hci_control_send_user_confirmation_request_evt( BD_ADDR bda, uint32_t numer
     wiced_transport_send_data( HCI_CONTROL_EVENT_USER_CONFIRMATION, buf, 10 );
 }
 
-
 /*
  *  Send Encryption Changed event through UART
  */
 void hci_control_send_encryption_changed_evt( uint8_t encrypted ,  wiced_bt_device_address_t bdaddr )
 {
     int i;
-    uint8_t event_data[BD_ADDR_LEN + sizeof(uint8_t)];
+    const int cmd_size = BD_ADDR_LEN + sizeof(uint8_t);
+    uint8_t event_data[cmd_size];
     int     cmd_bytes = 0;
 
     event_data[cmd_bytes++] = encrypted;
@@ -1363,6 +1364,27 @@ void hci_control_send_encryption_changed_evt( uint8_t encrypted ,  wiced_bt_devi
     wiced_transport_send_data( HCI_CONTROL_EVENT_ENCRYPTION_CHANGED, event_data, cmd_bytes );
 }
 
+wiced_result_t hci_control_audio_send_codec_configured( wiced_bt_a2dp_codec_info_t codec_info)
+{
+    int i=0;
+    const int cmd_size = sizeof(uint8_t) + sizeof(wiced_bt_a2d_sbc_cie_t);
+    uint8_t event_data[cmd_size];
+
+    WICED_BT_TRACE( "[%s]\n", __FUNCTION__);
+
+
+        event_data[i++] = codec_info.codec_id;
+        event_data[i++] = codec_info.cie.sbc.samp_freq;
+        event_data[i++] = codec_info.cie.sbc.ch_mode;
+        event_data[i++] = codec_info.cie.sbc.block_len;
+        event_data[i++] = codec_info.cie.sbc.num_subbands;
+        event_data[i++] = codec_info.cie.sbc.alloc_mthd;
+        event_data[i++] = codec_info.cie.sbc.max_bitpool;
+        event_data[i++] = codec_info.cie.sbc.min_bitpool;
+
+        return wiced_transport_send_data( HCI_CONTROL_AUDIO_SINK_EVENT_CODEC_CONFIGURED, event_data, cmd_size );
+}
+
 /*
  *  send audio connect complete event to UART
  */
@@ -1370,7 +1392,7 @@ wiced_result_t hci_control_audio_send_connect_complete( wiced_bt_device_address_
 {
     int i;
     const int cmd_size = BD_ADDR_LEN + sizeof(handle) + sizeof(uint8_t);
-    uint8_t event_data[BD_ADDR_LEN + sizeof(handle) + sizeof(uint8_t)];
+    uint8_t event_data[cmd_size];
 
     WICED_BT_TRACE( "[%s] %B status %x handle %x\n", __FUNCTION__, bd_addr, status, handle );
 
@@ -1383,14 +1405,12 @@ wiced_result_t hci_control_audio_send_connect_complete( wiced_bt_device_address_
         event_data[i++] = handle & 0xff;                        //handle
         event_data[i++]   = ( handle >> 8 ) & 0xff;
 
-#if (WICED_TRUE == WICED_APP_AUDIO_RC_TG_INCLUDED)
-        event_data[i] = wiced_bt_avrc_tg_is_peer_absolute_volume_capable( );
-#endif
-        return wiced_transport_send_data( HCI_CONTROL_AUDIO_EVENT_CONNECTED, event_data, cmd_size );
+        //event_data[i] = wiced_bt_rc_target_is_peer_absolute_volume_capable( );
+        return wiced_transport_send_data( HCI_CONTROL_AUDIO_SINK_EVENT_CONNECTED, event_data, cmd_size );
     }
     else
     {
-        return wiced_transport_send_data( HCI_CONTROL_AUDIO_EVENT_CONNECTION_FAILED, NULL, 0 );
+        return wiced_transport_send_data( HCI_CONTROL_AUDIO_SINK_EVENT_CONNECTION_FAILED, NULL, 0 );
     }
 }
 
@@ -1409,7 +1429,26 @@ wiced_result_t hci_control_audio_send_disconnect_complete( uint16_t handle, uint
     event_data[2] = status;                                 // status
     event_data[3] = reason;                                 // reason(1 byte)
 
-    return wiced_transport_send_data( HCI_CONTROL_AUDIO_EVENT_DISCONNECTED, event_data, 4 );
+    return wiced_transport_send_data( HCI_CONTROL_AUDIO_SINK_EVENT_DISCONNECTED, event_data, 4 );
+}
+
+/*  send audio start Indication to UART */
+wiced_result_t hci_control_audio_send_start_indication( uint16_t handle, uint8_t label )
+{
+    uint8_t event_data[4];
+    WICED_BT_TRACE( "[%s] handle %04x, Label:%x \n", __FUNCTION__, handle , label);
+    //Build event payload
+    event_data[0] = handle & 0xff;                          //handle
+    event_data[1] = ( handle >> 8 ) & 0xff;
+    event_data[2] = label;
+
+#ifdef STANDALONE_HEADSET_APP
+    /* start response is sent for stand-alone mode only */
+    event_data[3] = A2D_SUCCESS;
+    return a2dp_app_hci_control_start_rsp(event_data,4);
+#else
+    return wiced_transport_send_data( HCI_CONTROL_AUDIO_SINK_EVENT_START_IND, event_data, 3);
+#endif
 }
 
 /*
@@ -1419,13 +1458,13 @@ wiced_result_t hci_control_audio_send_started_stopped( uint16_t handle, wiced_bo
 {
     uint8_t event_data[2];
 
-    WICED_BT_TRACE( "[%s] handle %04x started:%d", __FUNCTION__, handle, started );
+    WICED_BT_TRACE( "[%s] handle %04x\n", __FUNCTION__, handle );
 
     //Build event payload
     event_data[0] = handle & 0xff;                          //handle
     event_data[1] = ( handle >> 8 ) & 0xff;
 
-    return wiced_transport_send_data(started ? HCI_CONTROL_AUDIO_EVENT_STARTED : HCI_CONTROL_AUDIO_EVENT_STOPPED, event_data, 2);
+    return wiced_transport_send_data(started ? HCI_CONTROL_AUDIO_SINK_EVENT_STARTED : HCI_CONTROL_AUDIO_SINK_EVENT_STOPPED, event_data, 2);
 }
 
 /*
@@ -1444,6 +1483,20 @@ wiced_result_t hci_control_send_avrc_target_event( int type, uint16_t handle )
     return wiced_transport_send_data( type, event_data, 2 );
 }
 
+wiced_result_t hci_control_send_avrc_volume( uint16_t handle, uint8_t volume )
+{
+    uint8_t event_data[3];
+
+    //Build event payload
+    event_data[0] = handle & 0xff;                          // handle
+    event_data[1] = ( handle >> 8 ) & 0xff;
+    event_data[2] = volume;                  // Volume level in percentage
+
+    WICED_BT_TRACE( "[%s] handle %04x Volume(Pct): %d\n", __FUNCTION__, handle, event_data[2] );
+
+    return wiced_transport_send_data( HCI_CONTROL_AVRC_TARGET_EVENT_VOLUME_LEVEL, event_data, 3 );
+}
+
 /*********************************************************************************************
  * AVRCP controller event handlers
  *********************************************************************************************/
@@ -1454,7 +1507,7 @@ wiced_result_t hci_control_avrc_send_connect_complete( wiced_bt_device_address_t
 {
     int i = 0;
     const int cmd_size = BD_ADDR_LEN + sizeof(handle) + sizeof(uint8_t);
-    uint8_t event_data[BD_ADDR_LEN + sizeof(handle) + sizeof(uint8_t)];
+    uint8_t event_data[cmd_size];
 
     WICED_BT_TRACE( "[%s] %B status %x handle %x\n", __FUNCTION__, bd_addr, status, handle );
 
@@ -1468,7 +1521,10 @@ wiced_result_t hci_control_avrc_send_connect_complete( wiced_bt_device_address_t
 
         event_data[i++] = handle & 0xff;                        //handle
         event_data[i++] = ( handle >> 8 ) & 0xff;
-
+#ifdef STANDALONE_HEADSET_APP
+       /* store the handle for stand alone app*/
+        app_state_cb.remote_control_handle = handle;
+#endif
     }
     else
     {
@@ -1483,6 +1539,7 @@ wiced_result_t hci_control_avrc_send_connect_complete( wiced_bt_device_address_t
  */
 wiced_result_t hci_control_avrc_send_disconnect_complete( uint16_t handle )
 {
+    int i;
     uint8_t event_data[4];
 
     WICED_BT_TRACE( "[%s] handle: %04x\n", __FUNCTION__, handle );
@@ -1495,7 +1552,7 @@ wiced_result_t hci_control_avrc_send_disconnect_complete( uint16_t handle )
 }
 
 /*
- *  send avrcp controller connect complete event to UART
+ *  send avrcp controller play status event to UART
  */
 wiced_result_t hci_control_avrc_send_play_status_change( uint16_t handle, uint8_t play_status )
 {
@@ -1513,6 +1570,33 @@ wiced_result_t hci_control_avrc_send_play_status_change( uint16_t handle, uint8_
 }
 
 /*
+ *  send avrc controller play status information( play_status, song-position and song-length) to UART
+ */
+wiced_result_t hci_control_avrc_send_play_status_info(uint16_t handle, uint8_t play_status, uint32_t song_length, uint32_t song_position)
+{
+    uint8_t event_data[11];
+    WICED_BT_TRACE( "[%s] handle %04x\n", __FUNCTION__, handle );
+
+    //Build event payload
+    event_data[0] = handle & 0xff;                          //handle
+    event_data[1] = ( handle >> 8 ) & 0xff;
+
+    event_data[2] = play_status & 0xff;                     // play status
+
+    event_data[3] = song_length & 0xff;                     // song-length
+    event_data[4] = (song_length >> 8 )& 0xff;
+    event_data[5] = (song_length >> 16) & 0xff;
+    event_data[6] = (song_length >> 24) & 0xff;
+
+    event_data[7]  = song_position & 0xff;                  // song-position
+    event_data[8]  = (song_position >> 8 )& 0xff;
+    event_data[9]  = (song_position >> 16) & 0xff;
+    event_data[10] = (song_position >> 24) & 0xff;
+
+    return wiced_transport_send_data(HCI_CONTROL_AVRC_CONTROLLER_EVENT_PLAY_STATUS_INFO, event_data, 11);
+}
+
+/*
  *  send AVRC event to UART
  */
 
@@ -1521,18 +1605,129 @@ wiced_result_t hci_control_send_avrc_event( int type, uint8_t *p_data, uint16_t 
     return wiced_transport_send_data( type, p_data, data_size );
 }
 
+/* This is used only for stand-alone mode to store the keys in the NVRAM */
+#ifdef STANDALONE_HEADSET_APP
+
+/*
+ * Read keys from the NVRAM and update address resolution database
+ */
+void headset_load_keys_to_addr_resolution_db(void)
+{
+    uint8_t                     bytes_read;
+    wiced_result_t              result;
+    wiced_bt_device_link_keys_t keys;
+
+    bytes_read = wiced_hal_read_nvram(WICED_NVRAM_VSID_START, sizeof(keys), (uint8_t *)&keys, &result);
+
+    // if failed to read NVRAM, there is nothing saved at that location
+    if (result == WICED_SUCCESS)
+    {
+        result = wiced_bt_dev_add_device_to_address_resolution_db(&keys, keys.key_data.ble_addr_type);
+    }
+}
+
+/*
+ * This function is called to save keys generated as a result of pairing or keys update
+ */
+wiced_bool_t headset_save_link_keys(wiced_bt_device_link_keys_t *p_keys)
+{
+    uint8_t                     bytes_written = 0, bytes_read;
+    wiced_result_t              result;
+    uint8_t                     nvram_id = HEADSET_NVRAM_ID;
+    wiced_bt_device_link_keys_t keys;
+
+    // there might be a situation where the keys are already saved, for example in dual mode
+    // device the br/edr keys can be present when we are doing le pairing
+    bytes_read = wiced_hal_read_nvram(nvram_id, sizeof(wiced_bt_device_link_keys_t), (uint8_t *)&keys, &result);
+
+    WICED_BT_TRACE("keys.bd_addr:%B p_keys:%B keys static:%B p_keys:%B\n", keys.bd_addr, p_keys->bd_addr, keys.key_data.static_addr, p_keys->key_data.static_addr);
+
+    if ((bytes_read != sizeof(wiced_bt_device_link_keys_t)) ||
+        (memcmp(p_keys->bd_addr, keys.bd_addr, BD_ADDR_LEN) != 0))
+    {
+        bytes_written = wiced_hal_write_nvram(nvram_id, sizeof(wiced_bt_device_link_keys_t), (uint8_t *)p_keys, &result);
+        WICED_BT_TRACE("Saved %d bytes at id:%d result:%d\n", bytes_written, nvram_id, result);
+        return (bytes_written == sizeof (wiced_bt_device_link_keys_t));
+    }
+
+    // try to figure out what is being updated
+    if (p_keys->key_data.le_keys_available_mask != 0)
+    {
+        WICED_BT_TRACE("updating LE keys\n");
+        keys.key_data.le_keys_available_mask = p_keys->key_data.le_keys_available_mask;
+        keys.key_data.ble_addr_type          = p_keys->key_data.ble_addr_type;
+        keys.key_data.static_addr_type       = p_keys->key_data.static_addr_type;
+        memcpy (keys.key_data.static_addr, p_keys->key_data.static_addr, sizeof(p_keys->key_data.static_addr));
+        memcpy (&keys.key_data.le_keys, &p_keys->key_data.le_keys, sizeof(p_keys->key_data.le_keys));
+    }
+    else
+    {
+        WICED_BT_TRACE("updating BR/EDR keys\n");
+        keys.key_data.br_edr_key_type       = p_keys->key_data.br_edr_key_type;
+        memcpy (keys.key_data.br_edr_key, p_keys->key_data.br_edr_key, sizeof(p_keys->key_data.br_edr_key));
+    }
+    WICED_BT_TRACE("Saved %d bytes at id:%d result:%d\n", bytes_written, nvram_id, result);
+    return WICED_TRUE;
+}
+
+/*
+ * This function is called to read keys for specific bdaddr
+ */
+wiced_bool_t headset_read_link_keys(wiced_bt_device_link_keys_t *p_keys)
+{
+    uint8_t                     bytes_read;
+    wiced_result_t              result;
+    wiced_bt_device_link_keys_t keys;
+
+    bytes_read = wiced_hal_read_nvram(HEADSET_NVRAM_ID, sizeof(wiced_bt_device_link_keys_t), (uint8_t *)p_keys, &result);
+    WICED_BT_TRACE("read %d bytes at id:%d\n", bytes_read, HEADSET_NVRAM_ID);
+    return (bytes_read == sizeof (wiced_bt_device_link_keys_t));
+}
+
+/*
+ * This function is called to delete paired host info
+ */
+wiced_bool_t headset_delete_link_keys(void)
+{
+    uint8_t                     bytes_written, bytes_read;
+    wiced_result_t              result;
+    uint8_t                     nvram_id = HEADSET_NVRAM_ID;
+    wiced_bt_device_link_keys_t keys;
+
+    wiced_hal_delete_nvram(nvram_id, &result);
+    return WICED_TRUE;
+}
+
+/*
+ * Read keys from the NVRAM and update address resolution database
+ */
+wiced_bool_t headset_get_paired_host_info(uint8_t* bda)
+{
+    wiced_bt_device_link_keys_t keys;
+    if (headset_read_link_keys(&keys))
+    {
+        memcpy(bda, keys.bd_addr, BD_ADDR_LEN);
+        return WICED_TRUE;
+    }
+    return WICED_FALSE;
+}
+
+#endif
+/* End of link-keys storing to NVRAM */
+
 /*
  * Write NVRAM function is called to store information in the RAM.  This can be called when
  * stack requires persistent storage, for example to save link keys.  In this case
  * data is also formatted and send to the host for real NVRAM storage.  The same function is
  * called when host pushes NVRAM chunks during the startup.  Parameter from_host in this
- * case is set to WICED_FALSE indicating that data does not need to be forwarded.
+ * case is set to FALSE indicating that data does not need to be forwarded.
  */
 int hci_control_write_nvram( int nvram_id, int data_len, void *p_data, wiced_bool_t from_host )
 {
     uint8_t                    tx_buf[257];
     uint8_t                   *p = tx_buf;
     hci_control_nvram_chunk_t *p1;
+    hci_control_nvram_chunk_t *prev = NULL;
     wiced_result_t            result;
 
     /* first check if this ID is being reused and release the memory chunk */
@@ -1541,10 +1736,22 @@ int hci_control_write_nvram( int nvram_id, int data_len, void *p_data, wiced_boo
     /* Allocating a buffer from the pool created for storing the peer info */
     if ( ( p1 = ( hci_control_nvram_chunk_t * )wiced_bt_get_buffer_from_pool( p_key_info_pool ) ) == NULL)
     {
-        WICED_BT_TRACE( "Failed to alloc:%d\n", data_len );
-        return ( 0 );
-    }
+        /*There is no space for the new device, delete a node from end of the list i.e first most inserted device */
+        p1 = p_nvram_first;
+        while(p1->p_next != NULL)
+        {
+            prev = p1;
+            p1 = p1->p_next;
+        }
+        wiced_bt_free_buffer(prev->p_next);
+        prev->p_next = NULL;
 
+        if ( ( p1 = ( hci_control_nvram_chunk_t * )wiced_bt_get_buffer_from_pool( p_key_info_pool ) ) == NULL)
+        {
+            WICED_BT_TRACE( "Failed to alloc:%d\n", data_len );
+            return ( 0 );
+        }
+    }
     if ( wiced_bt_get_buffer_size( p1 ) < ( sizeof( hci_control_nvram_chunk_t ) + data_len - 1 ) )
     {
         WICED_BT_TRACE( "Insufficient buffer size, Buff Size %d, Len %d  \n",
@@ -1554,6 +1761,7 @@ int hci_control_write_nvram( int nvram_id, int data_len, void *p_data, wiced_boo
         return ( 0 );
     }
 
+    /*Insert the new node at the begining*/
     p1->p_next    = p_nvram_first;
     p1->nvram_id  = nvram_id;
     p1->chunk_len = data_len;
@@ -1562,11 +1770,9 @@ int hci_control_write_nvram( int nvram_id, int data_len, void *p_data, wiced_boo
     p_nvram_first = p1;
 
     wiced_bt_device_link_keys_t * p_keys = ( wiced_bt_device_link_keys_t *) p_data;
-#ifdef CYW20706A2
-    result = wiced_bt_dev_add_device_to_address_resolution_db( p_keys, p_keys->key_data.ble_addr_type );
-#else
-    result = wiced_bt_dev_add_device_to_address_resolution_db( p_keys );
-#endif
+    result = wiced_bt_dev_add_device_to_address_resolution_db( p_keys,
+            p_keys->key_data.ble_addr_type );
+
     WICED_BT_TRACE("Updated Addr Resolution DB:%d\n", result );
 
     // If NVRAM chunk arrived from host, no need to send it back, otherwise send over transport
@@ -1631,8 +1837,8 @@ void hci_control_delete_nvram( int nvram_id, wiced_bool_t from_host )
         }
         else
         {
-            p_nvram_first = (hci_control_nvram_chunk_t *)p_nvram_first->p_next;
-            wiced_bt_free_buffer( p1 );
+        p_nvram_first = (hci_control_nvram_chunk_t *)p_nvram_first->p_next;
+        wiced_bt_free_buffer( p1 );
         }
         return;
     }
@@ -1650,8 +1856,8 @@ void hci_control_delete_nvram( int nvram_id, wiced_bool_t from_host )
             }
             else
             {
-                p1->p_next = p2->p_next;
-                wiced_bt_free_buffer( p2 );
+            p1->p_next = p2->p_next;
+            wiced_bt_free_buffer( p2 );
             }
             return;
         }
@@ -1682,7 +1888,7 @@ int hci_control_read_nvram( int nvram_id, void *p_data, int data_len )
 /*
  * Allocate nvram_id to save new NVRAM chunk
  */
-int hci_control_alloc_nvram_id( void )
+int hci_control_alloc_nvram_id( )
 {
     hci_control_nvram_chunk_t *p1 = p_nvram_first;
     int                        nvram_id;
@@ -1724,12 +1930,12 @@ int hci_control_alloc_nvram_id( void )
     return ( nvram_id );
 }
 
+#if 0
 /*
  * Remote Control can work a target or a controller.  This function sets up the appropriate role.
  */
 void hci_control_switch_avrcp_role(uint8_t new_role)
 {
-#if ( (WICED_APP_AUDIO_RC_TG_INCLUDED == WICED_TRUE) && (WICED_APP_AUDIO_RC_CT_INCLUDED == WICED_TRUE) )
     WICED_BT_TRACE ( "[%s] New Role: %d \n", __FUNCTION__, new_role);
 
     if (new_role != avrcp_profile_role)
@@ -1738,10 +1944,10 @@ void hci_control_switch_avrcp_role(uint8_t new_role)
         {
         case AVRCP_TARGET_ROLE:
             /* Shutdown the avrcp target */
-            wiced_bt_avrc_tg_initiate_close();
+            wiced_bt_rc_target_initiate_close();
 
             /* Initialize the avrcp controller */
-            hci_control_rc_controller_init();
+            avrc_app_init();
 
             avrcp_profile_role = new_role;
             break;
@@ -1751,8 +1957,8 @@ void hci_control_switch_avrcp_role(uint8_t new_role)
             wiced_bt_avrc_ct_cleanup();
 
             /* Initialize the avrcp target */
-            hci_control_rc_target_init();
-            wiced_bt_avrc_tg_register();
+            app_avrc_init();
+            wiced_bt_rc_target_register();
 
             avrcp_profile_role = new_role;
             break;
@@ -1761,20 +1967,14 @@ void hci_control_switch_avrcp_role(uint8_t new_role)
             break;
         }
     }
-#endif
 }
+#endif
 
 /*
  * hci_control_transport_tx_cplt_cback.
  * This function is called when a Transport Buffer has been sent to the MCU
  */
-static void hci_control_transport_tx_cplt_cback( wiced_transport_buffer_pool_t* p_pool )
+static void hci_control_transport_tx_cplt_cback(wiced_transport_buffer_pool_t* p_pool)
 {
-    WICED_BT_TRACE( " hci_control_transport_tx_cplt_cback %x \n", p_pool );
-}
 
-static void hci_control_transport_status( wiced_transport_type_t type )
-{
-    WICED_BT_TRACE( " hci_control_transport_status %x \n", type );
-    hci_control_send_device_started_evt();
 }

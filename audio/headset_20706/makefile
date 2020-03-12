@@ -36,7 +36,7 @@ endif
 #
 # Basic Configuration
 #
-APPNAME= BT_AudioGateway
+APPNAME= Handsfree
 TOOLCHAIN=GCC_ARM
 CONFIG=Debug
 VERBOSE=
@@ -45,18 +45,10 @@ VERBOSE=
 TARGET=CYW920706WCDEVAL
 
 SUPPORTED_TARGETS = \
-  CYW920721B2EVK-01 \
-  CYW920721B2EVK-03 \
-  CYW920721B2EVK-02 \
-  CYW920719B2Q40EVB-01 \
   CYW920706WCDEVAL
 
 
 TARGET_DEVICE_MAP = \
-  CYW920721B2EVK-01/20721B2 \
-  CYW920721B2EVK-03/20721B2 \
-  CYW920721B2EVK-02/20721B2 \
-  CYW920719B2Q40EVB-01/20719B2 \
   CYW920706WCDEVAL/20706A2
 
 CY_TARGET_DEVICE = $(patsubst $(TARGET)/%,%,$(filter $(TARGET)%,$(TARGET_DEVICE_MAP)))
@@ -98,6 +90,8 @@ UART?=AUTO
 XIP?=
 TRANSPORT?=UART
 export ENABLE_DEBUG?=0
+# To build a hcd file that can be downloaded via ClientControl uncomment the line below.
+#export DIRECT_LOAD=1
 
 # wait for SWD attach
 ifeq ($(ENABLE_DEBUG),1)
@@ -105,15 +99,20 @@ CY_APP_DEFINES+=-DENABLE_DEBUG=1
 endif
 
 CY_APP_DEFINES  = -DWICED_BT_TRACE_ENABLE
-
+CY_APP_DEFINES += -DAVRC_ADV_CTRL_INCLUDED
+CY_APP_DEFINES += -DAVRC_METADATA_INCLUDED
+CY_APP_DEFINES += -DWICED_BT_HFP_HF_MAX_CONN=2
 #
 # Components (middleware libraries)
 #
 COMPONENTS += bsp_design_modus
-COMPONENTS += hfp_audio_gateway
+COMPONENTS += handsfree_profile
+COMPONENTS += a2dp_sink_profile
+COMPONENTS += avrc_controller
 
 ifeq ($(CY_TARGET_DEVICE),20706A2)
 CY_APP_PATCH_LIBS += wiced_voice_path.a
+CY_APP_PATCH_LIBS += wiced_audio_sink.a
 endif
 
 ################################################################################
