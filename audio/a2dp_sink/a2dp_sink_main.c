@@ -72,7 +72,7 @@
 #if ( defined(CYW20706A2) || defined(CYW20719B1) || defined(CYW20719B0) || defined(CYW20721B1) || defined(CYW20735B0) || defined(CYW43012C0) )
 #include "wiced_bt_app_hal_common.h"
 #endif
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
 #include "wiced_audio_manager.h"
 #endif
 #include "wiced_bt_dev.h"
@@ -133,15 +133,20 @@ static wiced_result_t a2dp_sink_management_callback( wiced_bt_management_evt_t e
 static int            a2dp_sink_write_nvram( int nvram_id, int data_len, void *p_data );
 static int            a2dp_sink_read_nvram( int nvram_id, void *p_data, int data_len );
 
+/********************************************* DEBUG **********************************************************************/
+
 /******************************************************
  *               Function Definitions
  ******************************************************/
-
 /*
  *  Application Start, ie, entry point to the application.
  */
 APPLICATION_START()
 {
+#if defined(CYW43012C0)
+    platform_init_43012c0();
+#endif
+
 #if defined WICED_BT_TRACE_ENABLE || defined HCI_TRACE_OVER_TRANSPORT
     wiced_transport_init( &transport_cfg );
 
@@ -151,19 +156,23 @@ APPLICATION_START()
     // Set to PUART to see traces on peripheral uart(puart)
 #ifdef NO_PUART_SUPPORT
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_WICED_UART );
+#if defined(CYW43012C0)
+    wiced_debug_uart = WICED_ROUTE_DEBUG_TO_DBG_UART;
+    debug_uart_enable(3000000);
+#endif /* CYW43012C0 */
 #else
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_PUART );
-#if ( defined(CYW20706A2) || defined(CYW20735B0) || defined(CYW20719B0) || defined(CYW43012C0) )
+#if ( defined(CYW20706A2) || defined(CYW20735B0) || defined(CYW20719B0))
     wiced_hal_puart_select_uart_pads( WICED_PUART_RXD, WICED_PUART_TXD, 0, 0);
-#endif
-#endif
+#endif /* defined(CYW20706A2) || defined(CYW20735B0) || defined(CYW20719B0) */
+#endif /* NO_PUART_SUPPORT */
     // Set to HCI to see traces on HCI uart - default if no call to wiced_set_debug_uart()
     // wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_HCI_UART );
 
     // Use WICED_ROUTE_DEBUG_TO_WICED_UART to send formatted debug strings over the WICED
     // HCI debug interface to be parsed by ClientControl/BtSpy.
     // wiced_set_debug_uart(WICED_ROUTE_DEBUG_TO_WICED_UART);
-#endif
+#endif /* WICED_BT_TRACE_ENABLE */
 
     WICED_BT_TRACE( "A2DP SINK APP START\n" );
 
@@ -316,7 +325,7 @@ wiced_result_t a2dp_sink_management_callback( wiced_bt_management_evt_t event, w
             wiced_bt_coex_enable();
 #endif
 #endif
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
             wiced_am_init();
 #endif
             break;

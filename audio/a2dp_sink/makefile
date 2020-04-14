@@ -133,13 +133,6 @@ CY_APP_DEFINES += -DOTA_FW_UPGRADE=1
 COMPONENTS += fw_upgrade_lib
 endif
 
-ifeq ($(TARGET),CYW920721B2EVK-01)
-CY_APP_DEFINES += -DAK_4679_CODEC_ENABLE
-CY_APP_DEFINES += -DAUDIO_SHIELD_EVK_VER=1
-COMPONENTS += cyw9bt_audio
-COMPONENTS += codec_ak4679_lib
-endif # TARGET
-
 ifeq ($(TARGET),CYW920721B2EVK-02)
 CY_APP_DEFINES += -DCS47L35_CODEC_ENABLE
 CY_APP_DEFINES += -DAUDIO_SHIELD_EVK_VER=2
@@ -152,6 +145,16 @@ CY_APP_DEFINES += -DCS47L35_CODEC_ENABLE
 CY_APP_DEFINES += -DAUDIO_SHIELD_EVK_VER=3
 COMPONENTS += cyw9bt_audio2
 COMPONENTS += codec_cs47l35_lib
+endif # TARGET
+
+ifeq ($(TARGET),CYW9M2BASE-43012BT)
+CY_APP_DEFINES += -DAK_4679_CODEC_ENABLE
+CY_APP_DEFINES += -DAUDIO_SHIELD_EVK_VER=1
+CY_APP_DEFINES += -DNO_PUART_SUPPORT=1
+
+COMPONENTS += cyw9bt_audio
+COMPONENTS += codec_ak4679_lib
+COMPONENTS += audiomanager
 endif # TARGET
 
 ################################################################################
@@ -222,6 +225,7 @@ MAKE_OVERRIDES=OTA_FW_UPGRADE=$(OTA_FW_UPGRADE)
 export CONFIG
 export COMPONENTS
 export DISABLE_COMPONENTS
+-include internal.mk
 CY_SHARED_LIB_ARGS:=$(subst program,build,$(MAKECMDGOALS)) $(MAKE_OVERRIDES) CY_APP_DEFINES+="$(CY_APP_DEFINES)" CY_TARGET_DEVICE=$(CY_TARGET_DEVICE) TARGET=$(TARGET)
 
 .PHONY: $(SEARCH_LIBS_AND_INCLUDES) shared_libs
@@ -234,7 +238,6 @@ $(SEARCH_LIBS_AND_INCLUDES):
 CY_APP_LOCATION=$(lastword $(MAKEFILE_LIST))
 
 CY_APP_BUILD_GOALS:=build qbuild clean program qprogram debug qdebug all
--include internal.mk
 ifeq ($(filter setup teardown,$(MAKECMDGOALS)),)
 
 # ensure pre-requisite wiced_btsdk project is present

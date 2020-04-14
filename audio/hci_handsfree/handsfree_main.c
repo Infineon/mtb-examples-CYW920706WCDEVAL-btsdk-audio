@@ -100,11 +100,11 @@
 #include "wiced_hal_nvram.h"
 #include "wiced_hal_puart.h"
 #include "wiced_bt_stack.h"
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
 #include "wiced_audio_manager.h"
 #endif
 
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
 static int32_t stream_id = WICED_AUDIO_MANAGER_STREAM_ID_INVALID;
 static audio_config_t audio_config =
     {
@@ -500,7 +500,7 @@ static void handsfree_event_callback( wiced_bt_hfp_hf_event_t event, wiced_bt_hf
 
                 handsfree_ctxt_data.init_sco_conn = WICED_FALSE;
             }
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
             WICED_BT_TRACE("%s - CODEC_SET: %d\n", __func__, p_data->selected_codec);
             if ( p_data->selected_codec == WICED_BT_HFP_HF_MSBC_CODEC ) {
                 handsfree_esco_params.use_wbs = WICED_TRUE;
@@ -578,7 +578,7 @@ void handsfree_hfp_init(void)
     handsfree_init_context_data();
 
     /* Perform the rfcomm init before hf and spp start up */
-#if defined(CYW20719B2) || defined(CYW20721B2)
+#if defined(CYW20719B2) || defined(CYW20721B2) || defined (CYW43012C0)
     result = wiced_bt_rfcomm_set_buffer_pool( 700, 4);
 #else
     result = wiced_bt_rfcomm_init( 700, 4 );
@@ -692,7 +692,7 @@ void hf_sco_management_callback( wiced_bt_management_evt_t event, wiced_bt_manag
     switch ( event )
     {
         case BTM_SCO_CONNECTED_EVT:             /**< SCO connected event. Event data: #wiced_bt_sco_connected_t */
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
             /* setup audio path */
             if (stream_id == WICED_AUDIO_MANAGER_STREAM_ID_INVALID)
             {
@@ -726,7 +726,7 @@ void hf_sco_management_callback( wiced_bt_management_evt_t event, wiced_bt_manag
 
             if (WICED_SUCCESS != wiced_am_stream_set_param(stream_id, AM_MIC_GAIN_LEVEL, (void *) &audio_config.mic_gain))
                 WICED_BT_TRACE("wiced_am_set_param failed\n");
-#endif /* CYW20721B2 */
+#endif /* CYW20721B2 || CYW43012C0 */
 
             hci_control_send_hf_event( HCI_CONTROL_HF_EVENT_AUDIO_OPEN, p_scb->rfcomm_handle, NULL );
             WICED_BT_TRACE("%s: SCO Audio connected, sco_index = %d [in context sco index=%d]\n", __func__, p_event_data->sco_connected.sco_index, handsfree_ctxt_data.sco_index);
@@ -841,7 +841,7 @@ wiced_result_t handsfree_management_callback(wiced_bt_management_evt_t event, wi
             hci_control_send_device_started_evt( );
 #endif
 
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
             wiced_am_init();
 #endif
             break;
@@ -856,7 +856,7 @@ wiced_result_t handsfree_management_callback(wiced_bt_management_evt_t event, wi
             break;
 
         case BTM_SCO_DISCONNECTED_EVT:
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
             if (stream_id != WICED_AUDIO_MANAGER_STREAM_ID_INVALID)
             {
                 if( WICED_SUCCESS != wiced_am_stream_stop(stream_id))
@@ -989,6 +989,10 @@ static void hci_control_transport_status( wiced_transport_type_t type )
  */
 APPLICATION_START()
 {
+#if defined(CYW43012C0)
+    platform_init_43012c0();
+#endif
+
 #if defined WICED_BT_TRACE_ENABLE || defined HCI_TRACE_OVER_TRANSPORT
     wiced_transport_init( &transport_cfg );
 
@@ -997,6 +1001,10 @@ APPLICATION_START()
 
 #ifdef NO_PUART_SUPPORT
     wiced_set_debug_uart(WICED_ROUTE_DEBUG_TO_WICED_UART);
+#if defined(CYW43012C0)
+    wiced_debug_uart = WICED_ROUTE_DEBUG_TO_DBG_UART;
+    debug_uart_enable(3000000);
+#endif /* CYW43012C0 */
 #else
     // Set to PUART to see traces on peripheral uart(puart)
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_PUART );

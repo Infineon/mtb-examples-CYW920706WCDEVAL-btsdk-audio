@@ -48,11 +48,11 @@
 #else
 #include "hcidefs.h"
 #endif
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
 #include "wiced_audio_manager.h"
 #endif
 
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
 int32_t a2dp_stream_id = WICED_AUDIO_MANAGER_STREAM_ID_INVALID;
 #endif
 
@@ -66,7 +66,7 @@ typedef struct
     AV_STATE                  state;               /* AVDT State machine state */
     AV_STREAM_STATE           audio_stream_state;  /* Audio Streaming to host state */
     wiced_bt_a2dp_codec_info_t codec_config;       /* Codec configuration information */
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
     audio_config_t              audio_config;   /* Audio Configuration */
 #endif
 } tAV_APP_CB;
@@ -189,7 +189,7 @@ static void a2dp_sink_control_cback( wiced_bt_a2dp_sink_event_t event,
             }
             wiced_bt_a2dp_sink_update_route_config( p_data->codec_config.handle, &route_config);
 
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
             if (a2dp_stream_id == WICED_AUDIO_MANAGER_STREAM_ID_INVALID)
             {
                 a2dp_stream_id = wiced_am_stream_open(A2DP_PLAYBACK);
@@ -321,7 +321,7 @@ static void a2dp_sink_control_cback( wiced_bt_a2dp_sink_event_t event,
                 WICED_BT_TRACE(" a2dp sink streaming started \n");
             }
 
-#ifdef CYW20721B2
+#if defined(CYW20721B2) || defined(CYW43012C0)
             if (WICED_SUCCESS != wiced_am_stream_start(a2dp_stream_id))
             {
                 WICED_BT_TRACE("wiced_am_stream_start failed\n");
