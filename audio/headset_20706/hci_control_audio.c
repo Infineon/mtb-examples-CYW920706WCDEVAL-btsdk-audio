@@ -23,6 +23,7 @@
 #include "wiced_timer.h"
 #include "string.h"
 #include "wiced_bt_avrc_ct.h"
+#include "wiced_bt_utils.h"
 
 /******************************************************************************
  *                         Type Definitions
@@ -99,7 +100,7 @@ static uint16_t get_index_from_address(wiced_bt_device_address_t bd_addr)
     for( ; i < MAX_NUM_OF_SIMULTANEOUS_A2DP_CONNECTIONS; i++)
     {
         /* If found the matching address, return the handle */
-        if( !bdcmp(bd_addr, av_app_cb[i].peerBda) )
+        if( !utl_bdcmp(bd_addr, av_app_cb[i].peerBda) )
         {
             return i;
         }

@@ -38,6 +38,7 @@
 #include "hci_control_api.h"
 #include "wiced_bt_hfp_hf_int.h"
 #include "wiced_bt_audio.h"
+#include "wiced_bt_utils.h"
 
 // SDP Record for Hands-Free Unit
 #define HDLR_HANDS_FREE_UNIT                    0x10001
@@ -187,9 +188,6 @@ typedef struct
 extern handsfrees_app_globals handsfree_app_states;
 
 /* External Function Definitions */
-extern char *utl_strcpy( char *p_dst, char *p_src );
-extern int utl_strlen( char *p_str );
-extern int util_itoa(int i, char *p_s);
 extern void wiced_bt_trace_array( const char *string, const uint8_t* array, const uint16_t len );
 extern uint16_t wiced_app_cfg_sdp_record_get_size(void);
 extern void hci_control_send_device_started_evt( void );

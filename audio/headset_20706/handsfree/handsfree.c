@@ -263,7 +263,7 @@ static void hci_control_send_hf_event(uint16_t evt, uint16_t handle, hci_control
                 *p++ = (uint8_t)(p_data->val.num);
                 *p++ = (uint8_t)(p_data->val.num >> 8);
                 utl_strcpy((char *)p, p_data->val.str);
-                p += utl_strlen(p_data->val.str) + 1;
+                p += strlen(p_data->val.str) + 1;
             }
             else
             {

@@ -519,7 +519,7 @@ void hci_control_hf_send_at_cmd (uint16_t handle,char *cmd, uint8_t arg_type, ui
     /* copy argument if any */
     if (arg_format == WICED_BT_HFP_HF_AT_FMT_INT)
     {
-        p += util_itoa((uint16_t) int_arg, p);
+        p += utl_itoa((uint16_t) int_arg, p);
     }
     else if (arg_format == WICED_BT_HFP_HF_AT_FMT_STR)
     {

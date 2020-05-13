@@ -214,7 +214,7 @@ void hci_control_send_hf_event(uint16_t evt, uint16_t handle, hci_control_hf_eve
                 *p++ = (uint8_t)(p_data->val.num);
                 *p++ = (uint8_t)(p_data->val.num >> 8);
                 utl_strcpy((char *)p, p_data->val.str);
-                p += utl_strlen(p_data->val.str) + 1;
+                p += strlen(p_data->val.str) + 1;
             }
             else
             {
@@ -354,7 +354,7 @@ static void handsfree_send_clcc_evt (uint16_t handle, wiced_bt_hfp_hf_active_cal
         memcpy(&p_val->str[i],active_call->num,strlen(active_call->num));
         i +=  strlen(active_call->num);
         p_val->str[i++] = ',';
-        i += util_itoa (active_call->type,&p_val->str[i]);
+        i += utl_itoa (active_call->type,&p_val->str[i]);
     }
     p_val->str[i++] = '\0';
     hci_control_send_hf_event( HCI_CONTROL_HF_AT_EVENT_BASE + HCI_CONTROL_HF_AT_EVENT_CLCC, p_scb->rfcomm_handle, (hci_control_hf_event_t *)p_val );
@@ -989,10 +989,6 @@ static void hci_control_transport_status( wiced_transport_type_t type )
  */
 APPLICATION_START()
 {
-#if defined(CYW43012C0)
-    platform_init_43012c0();
-#endif
-
 #if defined WICED_BT_TRACE_ENABLE || defined HCI_TRACE_OVER_TRANSPORT
     wiced_transport_init( &transport_cfg );
 
@@ -1001,10 +997,6 @@ APPLICATION_START()
 
 #ifdef NO_PUART_SUPPORT
     wiced_set_debug_uart(WICED_ROUTE_DEBUG_TO_WICED_UART);
-#if defined(CYW43012C0)
-    wiced_debug_uart = WICED_ROUTE_DEBUG_TO_DBG_UART;
-    debug_uart_enable(3000000);
-#endif /* CYW43012C0 */
 #else
     // Set to PUART to see traces on peripheral uart(puart)
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_PUART );

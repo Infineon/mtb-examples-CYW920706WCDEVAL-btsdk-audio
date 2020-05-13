@@ -40,6 +40,7 @@
 #define HCI_CONTROL_H
 
 #include "wiced_app.h"
+#include "wiced_bt_utils.h"
 
 /*****************************************************************************
 **  Constants that define the capabilities and configuration
@@ -296,18 +297,6 @@ extern UINT8          wiced_bt_get_number_of_buffer_pools ( void );
 extern wiced_result_t a2dp_app_hci_control_start_rsp( uint8_t* p_data, uint32_t len );
 extern uint32_t       wiced_bt_ble_get_available_tx_buffers( void );
 
-/* String Utility functions */
-extern char    *utl_strcpy( char *p_dst, char *p_src );
-extern int      utl_strlen( char *p_str );
-extern int16_t  utl_str2int( char *p_s );
-extern int      utl_strucmp( char *p_s, char *p_t );
-extern uint8_t  utl_itoa( uint16_t i, char *p_s );
-extern void     utl_bdcpy( BD_ADDR a, BD_ADDR b );
-extern int util_itoa(int i, char *p_s);
-
 extern hci_control_test_command_t test_command;
-
-extern BD_ADDR  bd_addr_any;
-extern BD_ADDR  bd_addr_null;
 
 #endif /* BTA_HS_INT_H */

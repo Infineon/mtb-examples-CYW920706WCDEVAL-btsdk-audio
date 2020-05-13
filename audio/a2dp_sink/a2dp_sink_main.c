@@ -95,6 +95,11 @@
  **                     Variables Definitions
 *****************************************************************************/
 
+#if defined(CYW43012C0)
+/* to adjust memory for audio application */
+uint8_t g_wiced_memory_pre_init_enable = 1;
+#endif
+
 uint8_t pincode[4]                         = { 0x30, 0x30, 0x30, 0x30 };
 
 #if defined WICED_BT_TRACE_ENABLE || defined HCI_TRACE_OVER_TRANSPORT
@@ -143,10 +148,6 @@ static int            a2dp_sink_read_nvram( int nvram_id, void *p_data, int data
  */
 APPLICATION_START()
 {
-#if defined(CYW43012C0)
-    platform_init_43012c0();
-#endif
-
 #if defined WICED_BT_TRACE_ENABLE || defined HCI_TRACE_OVER_TRANSPORT
     wiced_transport_init( &transport_cfg );
 
@@ -156,10 +157,6 @@ APPLICATION_START()
     // Set to PUART to see traces on peripheral uart(puart)
 #ifdef NO_PUART_SUPPORT
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_WICED_UART );
-#if defined(CYW43012C0)
-    wiced_debug_uart = WICED_ROUTE_DEBUG_TO_DBG_UART;
-    debug_uart_enable(3000000);
-#endif /* CYW43012C0 */
 #else
     wiced_set_debug_uart( WICED_ROUTE_DEBUG_TO_PUART );
 #if ( defined(CYW20706A2) || defined(CYW20735B0) || defined(CYW20719B0))

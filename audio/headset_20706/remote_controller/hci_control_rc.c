@@ -40,6 +40,7 @@
 #include "wiced_timer.h"
 #include "wiced_memory.h"
 #include "string.h"
+#include "wiced_bt_utils.h"
 
 /******************************************************************************
  *                          Constants
@@ -128,7 +129,6 @@ wiced_result_t avrc_status_to_wiced[] =
 };
 
 #define avrc_status_to_wiced_result(a) ((a<=AVRC_STS_ADDR_PLAYER_CHG) ? avrc_status_to_wiced[a] : WICED_ERROR)
-extern int bdcmp(const wiced_bt_device_address_t a, const wiced_bt_device_address_t b);
 
 /******************************************************************************
  *                          Function Definitions
@@ -141,7 +141,7 @@ static uint16_t get_connection_handle_from_address(wiced_bt_device_address_t bd_
 
     for( ; i< MAX_NUM_OF_SIMULTANEOUS_AVRCP_CONNECTIONS; i++)
     {
-        if( bdcmp(bd_addr, rc_app_cb[i].remote_addr) == 0 )
+        if( utl_bdcmp(bd_addr, rc_app_cb[i].remote_addr) == 0 )
         {
             return i;
         }
