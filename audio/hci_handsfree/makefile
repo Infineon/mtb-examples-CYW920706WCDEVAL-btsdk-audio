@@ -1,5 +1,5 @@
 #
-# Copyright 2020, Cypress Semiconductor Corporation or a subsidiary of
+# Copyright 2016-2020, Cypress Semiconductor Corporation or a subsidiary of
 # Cypress Semiconductor Corporation. All Rights Reserved.
 #
 # This software, including source code, documentation and related
@@ -111,7 +111,12 @@ ifeq ($(CY_TARGET_DEVICE),20706A2)
 CY_APP_PATCH_LIBS += wiced_voice_path.a
 endif
 
-ifeq ($(CY_TARGET_DEVICE),20721B2)
+ifneq ($(filter $(CY_TARGET_DEVICE), 43012C0),)
+#CY_APP_PATCH_LIBS += wiced_audio_sink_lib.a
+#CY_APP_PATCH_LIBS += wiced_sco_lib.a
+endif
+
+ifneq ($(filter $(CY_TARGET_DEVICE), 20721B2),)
 CY_APP_PATCH_LIBS += wiced_audio_sink_lib.a
 endif
 
