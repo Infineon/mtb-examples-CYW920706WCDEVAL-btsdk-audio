@@ -104,6 +104,13 @@
 #include "wiced_audio_manager.h"
 #endif
 
+#if defined(CYW43012C0)
+/* to adjust memory for audio application */
+uint8_t g_wiced_memory_pre_init_enable = 1;
+uint8_t g_wiced_memory_pre_init_max_ble_connections = 4;
+uint8_t g_wiced_memory_pre_init_num_ble_rl = 16;
+#endif
+
 #if defined(CYW20721B2) || defined(CYW43012C0)
 static int32_t stream_id = WICED_AUDIO_MANAGER_STREAM_ID_INVALID;
 static audio_config_t audio_config =

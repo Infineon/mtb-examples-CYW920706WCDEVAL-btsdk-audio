@@ -98,6 +98,8 @@
 #if defined(CYW43012C0)
 /* to adjust memory for audio application */
 uint8_t g_wiced_memory_pre_init_enable = 1;
+uint8_t g_wiced_memory_pre_init_max_ble_connections = 4;
+uint8_t g_wiced_memory_pre_init_num_ble_rl = 16;
 #endif
 
 uint8_t pincode[4]                         = { 0x30, 0x30, 0x30, 0x30 };

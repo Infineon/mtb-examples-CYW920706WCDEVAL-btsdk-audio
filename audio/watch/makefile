@@ -58,6 +58,7 @@ TARGET_DEVICE_MAP = \
   CYW920820EVB-02/20820A1 \
   CYW920721B2EVK-03/20721B2 \
   CYW920721B2EVK-02/20721B2 \
+  CYW920721M2EVK-02/20721B2 \
   CYW920719B2Q40EVB-01/20719B2 \
   CYW920706WCDEVAL/20706A2 \
   CYW9M2BASE-43012BT/43012C0
@@ -134,7 +135,7 @@ CY_APP_DEFINES +=  \
 ifeq ($(TRANSPORT),SPI)
 #$(info Transport=SPI)
 
-ifeq ($(TARGET),$(filter $(TARGET), CYW920706WCDEVAL CYW920719B2Q40EVB-01 CYW920721B2EVK-02 CYW920721B2EVK-03))
+ifeq ($(TARGET),$(filter $(TARGET), CYW920706WCDEVAL CYW920719B2Q40EVB-01 CYW920721B2EVK-02 CYW920721M2EVK-02 CYW920721B2EVK-03))
 CY_APP_DEFINES += -DWICED_HCI_TRANSPORT=2
 else
 $(error invalid TARGET for SPI transport, supported only for CYW920706WCDEVAL and CYW920719B2Q40EVB-01)
@@ -152,7 +153,7 @@ CY_APP_PATCH_LIBS += wiced_hal_lib.a
 endif
 endif # TARGET
 
-ifeq ($(TARGET),$(filter $(TARGET),  CYW920719B2Q40EVB-01 CYW920721B2EVK-01 CYW920721B2EVK-02 CYW920721B2EVK-03))
+ifeq ($(TARGET),$(filter $(TARGET),  CYW920719B2Q40EVB-01 CYW920721B2EVK-01 CYW920721B2EVK-02 CYW920721M2EVK-02 CYW920721B2EVK-03))
 CY_APP_PATCH_LIBS += wiced_audio_source_lib.a
 endif
 
@@ -179,8 +180,10 @@ endif
 #
 # Components (middleware libraries)
 #
-COMPONENTS +=bsp_design_modus
+COMPONENTS += bsp_design_modus
 COMPONENTS += avrc_controller avrc_target
+COMPONENTS += ams
+COMPONENTS += ancs
 
 ifeq ($(OTA_FW_UPGRADE),1)
 COMPONENTS += fw_upgrade_lib
@@ -214,6 +217,14 @@ else # BT_AUDIO_SHIELD == 2
   $(error BT_AUDIO_SHIELD (version $(BT_AUDIO_SHIELD) not supported))
 endif # BT_AUDIO_SHIELD != 2
 endif
+
+ifeq ($(TARGET),$(filter $(TARGET),  CYW920719B2Q40EVB-01 CYW920721B2EVK-01 CYW920721B2EVK-02 CYW920721M2EVK-02 CYW920721B2EVK-03))
+COMPONENTS += hfp_audio_gateway
+CY_APP_DEFINES += -DWICED_APP_HFP_AG_INCLUDED=1
+else
+CY_APP_DEFINES += -DWICED_APP_HFP_AG_INCLUDED=0
+endif
+
 ################################################################################
 # Paths
 ################################################################################
